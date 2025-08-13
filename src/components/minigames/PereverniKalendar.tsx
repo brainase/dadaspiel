@@ -59,8 +59,14 @@ const ShatterPiece: React.FC<{ text: string }> = ({ text }) => {
 
 export const PereverniKalendarWinScreen: React.FC<{ onContinue?: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
+    const [showButton, setShowButton] = useState(false);
+
     useEffect(() => {
         playSound(SoundType.WIN_KALENDAR);
+        const timer = setTimeout(() => {
+            setShowButton(true);
+        }, 3000); // Показываем кнопку через 3 секунды
+        return () => clearTimeout(timer);
     }, [playSound]);
 
     const backgroundBerries = useMemo(() => Array.from({ length: 25 }).map((_, i) => ({
@@ -77,7 +83,7 @@ export const PereverniKalendarWinScreen: React.FC<{ onContinue?: () => void }> =
     })), []);
     
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-black relative overflow-hidden">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black overflow-hidden pointer-events-auto z-40">
              {backgroundBerries.map(berry => (
                 <div key={berry.id} style={berry.style}>
                     <PixelArt artData={ROWANBERRY_ART_DATA} palette={PIXEL_ART_PALETTE} pixelSize={4} />
@@ -88,8 +94,8 @@ export const PereverniKalendarWinScreen: React.FC<{ onContinue?: () => void }> =
                 <h2 className="text-8xl font-bold text-red-600">3</h2>
                 <p className="text-4xl">СЕНТЯБРЯ</p>
             </div>
-            {onContinue && (
-                 <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 animate-[fadeIn_1s_3s_forwards] opacity-0">
+            {onContinue && showButton && (
+                 <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 animate-[fadeIn_1s_forwards]">
                     ПРОДОЛЖИТЬ
                 </button>
             )}
@@ -103,7 +109,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
     // --- Состояние ---
     const [dragState, setDragState] = useState({ isDragging: false, progress: 0 });
     const [isShattered, setIsShattered] = useState(false);
-    const [hasWon, setHasWon] = useState(false);
+    const [showWinScreen, setShowWinScreen] = useState(false);
     const hasFinished = useRef(false);
     
     // --- Аудио ---
@@ -200,7 +206,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
             
             setIsShattered(true);
             setTimeout(() => {
-                setHasWon(true);
+                setShowWinScreen(true);
                 if (glitchGainRef.current && audioContextRef.current) {
                     glitchGainRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
                 }
@@ -226,7 +232,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
         const audioCtx = audioContextRef.current;
         if (audioCtx) {
             if(fireGain) {
-                const targetGain = isMuted ? 0 : (hasWon ? 0.15 : 0.05);
+                const targetGain = isMuted ? 0 : (showWinScreen ? 0.15 : 0.05);
                 fireGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.1);
             }
             if(glitchGain) {
@@ -234,7 +240,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
                  glitchGain.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.1);
             }
         }
-    }, [isMuted, hasWon, dragState]);
+    }, [isMuted, showWinScreen, dragState]);
 
     // Очистка аудио при размонтировании
     useEffect(() => {
@@ -250,27 +256,34 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
         onWin();
     };
 
-    const pageProgress = isShattered ? 1 : dragState.progress;
-    const glitchStyle: React.CSSProperties = { filter: `blur(${pageProgress * 3}px) contrast(${1 + pageProgress * 0.5}) hue-rotate(-${pageProgress * 25}deg)` };
+    if (showWinScreen) {
+        return <PereverniKalendarWinScreen onContinue={handleWinContinue} />;
+    }
+
+    const pointerHandlers = {
+        onMouseDown: handlePointerDown,
+        onMouseMove: handlePointerMove,
+        onMouseUp: handlePointerUp,
+        onMouseLeave: handlePointerUp,
+        onTouchStart: handlePointerDown,
+        onTouchMove: handlePointerMove,
+        onTouchEnd: handlePointerUp,
+    };
+
+    const glitchStyle: React.CSSProperties = { filter: `blur(${dragState.progress * 3}px) contrast(${1 + dragState.progress * 0.5}) hue-rotate(-${dragState.progress * 25}deg)` };
     const pageStyle: React.CSSProperties = {
-        transform: `perspective(1000px) rotateY(-${pageProgress * 110}deg)`,
+        transform: `perspective(1000px) rotateY(-${dragState.progress * 110}deg)`,
         transformOrigin: 'left center',
         transition: !dragState.isDragging ? 'transform 0.5s ease-in-out' : 'none',
-        boxShadow: `${pageProgress * 20}px 0px 30px rgba(0,0,0,0.5)`,
+        boxShadow: `${dragState.progress * 20}px 0px 30px rgba(0,0,0,0.5)`,
     };
     
     return (
         <div 
-            ref={containerRef} 
-            onMouseDown={handlePointerDown} 
-            onMouseMove={handlePointerMove} 
-            onMouseUp={handlePointerUp} 
-            onMouseLeave={handlePointerUp}
-            onTouchStart={handlePointerDown}
-            onTouchMove={handlePointerMove}
-            onTouchEnd={handlePointerUp}
-            className="w-full h-full flex flex-col items-center justify-center bg-gray-800 cursor-grab active:cursor-grabbing relative" 
-            style={hasWon ? undefined : glitchStyle}
+            ref={containerRef}
+            {...pointerHandlers}
+            className="w-full h-full flex flex-col items-center justify-center bg-gray-800 relative cursor-grab active:cursor-grabbing"
+            style={glitchStyle}
         >
             <style>{`
                 @keyframes shatter-fly {
@@ -283,8 +296,6 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
                     50% { transform: translateY(1px) rotate(1deg); }
                 }
             `}</style>
-
-            {hasWon && <PereverniKalendarWinScreen onContinue={handleWinContinue} />}
             
             {/* Сама страница календаря, исчезает, когда ее "разбили" */}
             {!isShattered && (
@@ -298,7 +309,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
             )}
             
             {/* Осколки, появляются, когда страница разбита */}
-            {isShattered && !hasWon && (
+            {isShattered && (
                  <>
                     <ShatterPiece text="2" />
                     <ShatterPiece text="СЕН" />
@@ -307,10 +318,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
                 </>
             )}
 
-            {/* Подсказка, исчезает после победы */}
-            {!hasWon && (
-                <p className="absolute bottom-8 text-xl text-yellow-300 z-10">Схвати и оторви прошлое.</p>
-            )}
+            <p className="absolute bottom-8 text-xl text-yellow-300 z-10">Схвати и оторви прошлое.</p>
         </div>
     );
 };

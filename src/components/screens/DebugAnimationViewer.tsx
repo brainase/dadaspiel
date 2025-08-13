@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { useNavigation, useSession, useSettings } from '../../context/GameContext';
 import { GameScreen } from '../../../types';
@@ -102,12 +103,6 @@ export const DebugAnimationViewer: React.FC = () => {
         return (
             <div className="w-full h-full relative flex items-center justify-center bg-gray-900">
                 <Component {...props} />
-                 {/* A general back button for animations that don't have one */}
-                 {(baseId === 'pereverni-kalendar') && (
-                    <button onClick={handleBack} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-purple-700">
-                        НАЗАД
-                    </button>
-                 )}
             </div>
         );
     }
