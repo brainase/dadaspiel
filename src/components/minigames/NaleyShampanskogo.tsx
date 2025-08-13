@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { PixelArt } from '../core/PixelArt';
@@ -240,9 +241,15 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
         if (gameAreaRef.current && !hasFinished.current) {
             e.preventDefault();
             const rect = gameAreaRef.current.getBoundingClientRect();
-            const pointer = 'touches' in e ? e.touches[0] : e;
+            const isTouchEvent = 'touches' in e;
+            const pointer = isTouchEvent ? e.touches[0] : e;
             if (pointer) {
-                setGlassPos({ x: pointer.clientX - rect.left, y: pointer.clientY - rect.top });
+                // Смещаем бокал вверх при касании, чтобы палец не закрывал его.
+                const yOffset = isTouchEvent ? 100 : 0; 
+                setGlassPos({ 
+                    x: pointer.clientX - rect.left, 
+                    y: (pointer.clientY - rect.top) - yOffset 
+                });
             }
         }
     };

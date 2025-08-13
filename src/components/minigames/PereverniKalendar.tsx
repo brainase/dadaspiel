@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PixelArt } from '../core/PixelArt';
 import { ROWANBERRY_ART_DATA } from '../../miscArt';
@@ -207,9 +208,8 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
                     const targetGain = isMuted ? 0 : 0.15;
                     fireGainRef.current.gain.setTargetAtTime(targetGain, audioContextRef.current.currentTime, 2);
                 }
-            }, 2000); // Даем время на анимацию осколков
+            }, 2000);
 
-            setTimeout(() => onWin(), 10000); // Победа через 10 секунд
         } else {
             // Возвращаем страницу на место
             setDragState({ isDragging: false, progress: 0 });
@@ -217,7 +217,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
                 glitchGainRef.current.gain.setTargetAtTime(0, audioContextRef.current.currentTime, 0.1);
             }
         }
-    }, [dragState, onWin, isMuted]);
+    }, [dragState, isMuted]);
     
     // Mute/unmute logic
     useEffect(() => {

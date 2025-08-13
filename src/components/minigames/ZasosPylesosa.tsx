@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSession, useSettings } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
@@ -175,10 +176,13 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
     }, [status, timeLeft, playerX, obstacleTypes, onLose, settings]), status === 'playing');
 
     // --- Управление игроком ---
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (gameAreaRef.current && status === 'playing') {
+            e.preventDefault();
             const rect = gameAreaRef.current.getBoundingClientRect();
-            const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+            const pointer = 'touches' in e ? e.touches[0] : e;
+            if (!pointer) return;
+            const x = Math.max(5, Math.min(95, ((pointer.clientX - rect.left) / rect.width) * 100));
             setPlayerX(x);
         }
     };
@@ -193,7 +197,13 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
     };
     
     return (
-        <div ref={gameAreaRef} onMouseMove={handleMouseMove} className="w-full h-full bg-gray-900 flex flex-col items-center relative overflow-hidden cursor-none">
+        <div 
+            ref={gameAreaRef} 
+            onMouseMove={handlePointerMove}
+            onTouchMove={handlePointerMove}
+            onTouchStart={handlePointerMove}
+            className="w-full h-full bg-gray-900 flex flex-col items-center relative overflow-hidden cursor-none"
+        >
             {/* Фон */}
             <div className="absolute inset-0 bg-gray-800 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.1)_2px,transparent_2px),linear-gradient(to_right,rgba(255,255,255,0.1)_2px,transparent_2px)] bg-[size:50px_50px]" style={{ backgroundPosition: `0 ${scrollOffset}%` }}></div>
 
