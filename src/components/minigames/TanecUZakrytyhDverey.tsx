@@ -126,6 +126,7 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
     const iconId = useRef(0);
     const feedbackId = useRef(0);
     const timeSinceSpawn = useRef(0);
+    const hasCalledOnLose = useRef(false);
     
     const charArt = useMemo(() => CHARACTER_ART_MAP[character || "Канила Дозловский"], [character]);
     const miniCharArt = useMemo(() => MINI_CHARACTER_ART_MAP[character || "Канила Дозловский"], [character]);
@@ -274,6 +275,14 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
         setIcons(prev => prev.filter(i => i.id !== clickedIcon.id));
     };
 
+    // Effect for handling the lose condition side-effect
+    useEffect(() => {
+        if (status === 'lost' && !hasCalledOnLose.current) {
+            hasCalledOnLose.current = true;
+            onLose();
+        }
+    }, [status, onLose]);
+
     const isPlayerTurn = phase === 'player';
     const isGuardTurn = phase === 'guard';
 
@@ -298,64 +307,39 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
                     style={{
                         left: `${icon.x}%`,
                         top: `${icon.y}%`,
-                        transform: `translate(-50%, -50%) rotate(${icon.rotation}deg) scale(1.5)`,
-                        opacity: icon.life < 0.5 ? icon.life / 0.5 : 1,
+                        transform: `translate(-50%, -50%) rotate(${icon.rotation}deg)`,
+                        opacity: icon.life / settings.iconLife
                     }}
                     onClick={() => handleIconClick(icon)}
+                    onTouchStart={() => handleIconClick(icon)}
                 >
                     <IconContent type={icon.type} />
                 </div>
             ))}
-
-             {feedback.map(f => (
-                <div
-                    key={f.id}
-                    className={`absolute text-3xl font-bold pointer-events-none ${f.color}`}
-                    style={{
-                        left: `${f.x}%`,
-                        top: `${f.y}%`,
-                        transform: 'translate(-50%, -50%)',
-                        textShadow: '2px 2px 0 #000',
-                        opacity: f.life
-                    }}
-                >
-                    {f.text}
-                </div>
+            {feedback.map(f => (
+                <div key={f.id} className={`absolute font-bold text-2xl pointer-events-none ${f.color}`} style={{
+                    left: `${f.x}%`, top: `${f.y}%`, opacity: f.life, transform: 'translate(-50%, -50%)'
+                }}>{f.text}</div>
             ))}
         </>
     );
 
-    const renderContent = () => {
-        if (status === 'won') {
-             return <GenericWinScreen
-                        title="ПРИХОДИТЕ ЗАВТРА!"
-                        text="Но не опаздывайте!"
-                        buttonText="КУПИТЬ ЧАСЫ"
-                        onContinue={onWin}
-                    />;
-        }
-
-        if (status === 'lost') return <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 text-center text-white p-4">
-            <h2 className="text-4xl">ВАС ВНЕСЛИ В ЧЁРНЫЙ СПИСОК!</h2>
-            <p className="text-xl mt-4">Вас больше никогда не впустят.</p>
-            <button onClick={() => onLose()} className="pixel-button p-4 text-2xl mt-8 bg-red-700">УЙТИ С ПОЗОРОМ</button>
-        </div>;
-
-        if (phase === 'intro') return <GameInstructions onStart={() => setRound(1)} />;
-        
-        return renderGame();
-    };
+    if (status === 'won') {
+        return <GenericWinScreen title="ПРИХОДИТЕ ЗАВТРА!" text="Но не опаздывайте!" buttonText="КУПИТЬ ЧАСЫ" onContinue={onWin} />;
+    }
+    if (status === 'lost') {
+        return null;
+    }
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
-             <style>{`
-                @keyframes dance { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-10px) scale(1.05); } }
-                .animate-dance { animation: dance 0.5s ease-in-out infinite; }
-                @keyframes hit { 0%, 100% { transform: translateX(0); } 10%, 30% { transform: translateX(-5px); } 20%, 40% { transform: translateX(5px); } }
-                .animate-hit { animation: hit 0.2s linear; }
-            `}</style>
+        <div className="w-full h-full relative overflow-hidden">
             <MuseumBackground />
-            {renderContent()}
+            
+            {phase === 'intro' ? (
+                <GameInstructions onStart={() => setRound(1)} />
+            ) : (
+                renderGame()
+            )}
         </div>
     );
 };

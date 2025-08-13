@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession, useSettings, useProfile, useNavigation } from '../../context/GameContext';
 import { playSound, SoundType } from '../../utils/AudioEngine';
 import { Character, GameScreen } from '../../../types';
@@ -12,11 +12,34 @@ export const HUD: React.FC = () => {
   const { activeProfile } = useProfile();
   const { screen } = useNavigation();
 
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
   const handleToggleMute = () => {
     // We want the click sound to play even if we are about to mute.
     playSound(SoundType.BUTTON_CLICK);
     toggleMute();
   };
+
+  const handleToggleFullscreen = () => {
+    playSound(SoundType.BUTTON_CLICK);
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
 
   return (
     <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center text-2xl z-50 pointer-events-none">
@@ -67,6 +90,14 @@ export const HUD: React.FC = () => {
           style={{textShadow: 'none'}} // Emojis look better without text-shadow
         >
           {isMuted ? '🔇' : '🔊'}
+        </button>
+        <button
+          onClick={handleToggleFullscreen}
+          className="pixel-button text-2xl !p-2 pointer-events-auto"
+          aria-label={isFullscreen ? "Выйти из полноэкранного режима" : "Войти в полноэкранный режим"}
+          style={{textShadow: 'none'}}
+        >
+          {isFullscreen ? '↙️' : '↗️'}
         </button>
       </div>
     </div>

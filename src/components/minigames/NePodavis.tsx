@@ -130,7 +130,7 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
     }, [status, gamePhase, round, roundSettings, onLose, playSound]), status === 'playing');
 
     // Клик по летящему объекту для его уничтожения.
-    const handleProjectileClick = (e: React.MouseEvent, id: number) => {
+    const handleProjectileClick = (e: React.MouseEvent | React.TouchEvent, id: number) => {
         e.stopPropagation();
         if (gamePhase !== 'avoid' || status !== 'playing') return;
         playSound(SoundType.DESTROY);
@@ -162,7 +162,7 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
     };
 
     return (
-        <div className="w-full h-full pulsing-bg flex flex-col items-center justify-center relative overflow-hidden" onClick={handleRecoverClick}>
+        <div className="w-full h-full pulsing-bg flex flex-col items-center justify-center relative overflow-hidden" onClick={handleRecoverClick} onTouchStart={handleRecoverClick}>
              <style>{`
                 @keyframes pulse-bg { 0% { background-size: 100% 100%; } 50% { background-size: 120% 120%; } 100% { background-size: 100% 100%; } }
                 .pulsing-bg { background: radial-gradient(circle, #4a0000 0%, #1a0000 70%, #000 100%); animation: pulse-bg 5s ease-in-out infinite; }
@@ -175,7 +175,7 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
             <div className="absolute top-16 text-2xl z-20 text-white">Раунд {round}/3</div>
             <div className="absolute top-28 flex gap-5 z-20">{Array.from({length: roundSettings.hitsToRecover}).map((_, i) => <div key={i} className={`w-12 h-12 text-4xl flex items-center justify-center pixel-border transition-colors duration-200 ${i < hitCount ? 'bg-red-600' : 'bg-gray-700'}`}>☠️</div>)}</div>
             <div className="relative mt-20 cursor-pointer"><PlayerHead artData={charArt} isHit={isHitVisual} isRecovering={gamePhase === 'recover'} /></div>
-            {gamePhase === 'avoid' && projectiles.map(p => <div key={p.id} className={`absolute text-3xl cursor-pointer ${p.content === 'word' ? dadaProjectileColor : ''}`} style={{left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%,-50%)'}} onClick={(e) => handleProjectileClick(e, p.id)}>{p.content === 'word' ? 'ДАДА' : p.content}</div>)}
+            {gamePhase === 'avoid' && projectiles.map(p => <div key={p.id} className={`absolute text-3xl cursor-pointer ${p.content === 'word' ? dadaProjectileColor : ''}`} style={{left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%,-50%)'}} onClick={(e) => handleProjectileClick(e, p.id)} onTouchStart={(e) => handleProjectileClick(e, p.id)}>{p.content === 'word' ? 'ДАДА' : p.content}</div>)}
             {particles.map(p => <div key={p.id} className="particle absolute text-white text-2xl pointer-events-none" style={{ left: `${p.x}%`, top: `${p.y}%`, '--tx': `${Math.cos(p.angle) * 50}px`, '--ty': `${Math.sin(p.angle) * 50}px` } as React.CSSProperties}>*</div>)}
             {coughParticles.map(p => <div key={p.id} className="absolute w-3 h-3 pointer-events-none z-30" style={{ left: `${p.x}%`, top: `${p.y}%`, backgroundColor: p.color, }}></div>)}
             {gamePhase === 'recover' && (

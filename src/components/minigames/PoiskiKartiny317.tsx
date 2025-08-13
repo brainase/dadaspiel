@@ -64,7 +64,11 @@ const FindTheNumber: React.FC<{ onFound: () => void }> = ({ onFound }) => {
     return (
         <div className="w-full h-full p-4 flex flex-wrap justify-center items-center gap-4 overflow-y-auto bg-gray-900">
             {numbers.map((num, i) => (
-                <span key={i} onClick={() => handleClick(num)} className="p-2 cursor-pointer hover:bg-yellow-400 hover:text-black text-white" style={{
+                <span 
+                    key={i} 
+                    onClick={() => handleClick(num)} 
+                    onTouchStart={() => handleClick(num)}
+                    className="p-2 cursor-pointer hover:bg-yellow-400 hover:text-black text-white" style={{
                     fontSize: `${16 + Math.random() * 24}px`,
                     transform: `rotate(${Math.random() * 90 - 45}deg)`,
                     fontFamily: ['Press Start 2P', 'Arial', 'Courier New'][Math.floor(Math.random()*3)],
@@ -313,6 +317,13 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
             default: return '';
         }
     };
+    
+    const handleWordInteract = (e: React.MouseEvent | React.TouchEvent, word: any) => {
+        e.stopPropagation();
+        if (phase !== 'interactPainting') return;
+        if (word.isTarget) handleDadaClick();
+        else handleWordClick(word.id);
+    }
 
     const PaintingComponent = useMemo(() => (
         <div className="w-3/4 h-5/6 bg-gradient-to-br from-yellow-400 to-amber-600 p-4 rounded-lg shadow-2xl border-4 border-yellow-700">
@@ -322,11 +333,8 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
                         key={word.id} 
                         className={`absolute p-1 text-white ${phase === 'interactPainting' ? 'cursor-pointer hover:text-yellow-300' : 'pointer-events-none'}`} 
                         style={word.style as React.CSSProperties} 
-                        onClick={() => {
-                            if (phase !== 'interactPainting') return;
-                            if (word.isTarget) handleDadaClick();
-                            else handleWordClick(word.id);
-                        }}
+                        onClick={(e) => handleWordInteract(e, word)}
+                        onTouchStart={(e) => handleWordInteract(e, word)}
                     >
                         {word.text}
                     </span>
@@ -335,6 +343,7 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
                 <div className="w-56 h-72 bg-amber-800 rounded-lg shadow-inner-lg flex items-center justify-center relative border-4 border-amber-900">
                     <div
                         onClick={phase === 'tearPage' ? handleTear : undefined}
+                        onTouchStart={phase === 'tearPage' ? handleTear : undefined}
                         className={`w-48 h-64 bg-stone-200 shadow-lg transform-origin-top-left ${phase === 'tearPage' ? `cursor-pointer ${getTearClass()}`: ''}`}
                     >
                        {tearState < 5 && pageContent}

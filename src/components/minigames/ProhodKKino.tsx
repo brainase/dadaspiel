@@ -161,10 +161,13 @@ export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMi
         setObstacles(newObstacles);
     }, [round, settings.obstacleSpeedMultiplier]);
     
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handlePointerMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
         if (gameStatus !== 'playing' || !gameAreaRef.current) return;
+        e.preventDefault();
         const rect = gameAreaRef.current.getBoundingClientRect();
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        const pointer = 'touches' in e ? e.touches[0] : e;
+        if (!pointer) return;
+        const y = ((pointer.clientY - rect.top) / rect.height) * 100;
         setPlayer(p => ({ ...p, y: Math.max(0, Math.min(100, y)) }));
     };
 
@@ -228,7 +231,14 @@ export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMi
       }, [gameStatus, player.x, round, onLose, playSound, isMinigameInverted, addScore, settings.playerSpeed]), true);
 
     return (
-        <div ref={gameAreaRef} onMouseMove={handleMouseMove} onClick={handleObstacleClick} className="w-full h-full bg-gradient-to-b from-[#333] to-[#111] flex flex-col items-center relative overflow-hidden cursor-none">
+        <div 
+            ref={gameAreaRef} 
+            onMouseMove={handlePointerMove} 
+            onTouchMove={handlePointerMove} 
+            onTouchStart={handlePointerMove}
+            onClick={handleObstacleClick} 
+            className="w-full h-full bg-gradient-to-b from-[#333] to-[#111] flex flex-col items-center relative overflow-hidden cursor-none"
+        >
             {gameStatus === 'won' && <ProhodKKinoWinScreen onContinue={onWin} isMuted={isMuted} />}
             {gameStatus === 'lost' && <div className="absolute inset-0 bg-red-900 bg-opacity-70 z-30 flex items-center justify-center text-8xl text-white animate-[fadeIn_0.5s]">СТОЛКНОВЕНИЕ!</div>}
             <div className="absolute bottom-2 left-2 text-xl z-20">РАУНД {round}/3</div><div className="absolute top-16 right-2 text-xl z-20">→ КИНО →</div>

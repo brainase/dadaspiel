@@ -132,10 +132,11 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
         }));
     }, [mousePos, pulsatingWordIds, attractors]), !hasFinished.current);
     
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (containerRef.current) {
+            const pointer = 'touches' in e ? e.touches[0] : e;
             const rect = containerRef.current.getBoundingClientRect();
-            setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+            setMousePos({ x: pointer.clientX - rect.left, y: pointer.clientY - rect.top });
         }
     };
 
@@ -178,7 +179,13 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
     };
 
     return (
-        <div ref={containerRef} onMouseMove={handleMouseMove} className="w-full h-full bg-gradient-to-br from-purple-900 to-indigo-950 flex flex-col items-center p-4 relative overflow-hidden select-none">
+        <div 
+            ref={containerRef} 
+            onMouseMove={handlePointerMove} 
+            onTouchMove={handlePointerMove}
+            onTouchStart={handlePointerMove}
+            className="w-full h-full bg-gradient-to-br from-purple-900 to-indigo-950 flex flex-col items-center p-4 relative overflow-hidden select-none"
+        >
             {winState && <DadaisticheskiyKomplimentWinScreen onContinue={handleWinContinue} winState={winState} />}
             <div className="w-full z-20 mt-16">
                 <div className="flex justify-between items-center mb-2"><span className={`text-lg ${groupColors.shirota}`}>ШИРОТА</span><span className="text-2xl font-bold">Время: {timeLeft}</span><span className={`text-lg ${groupColors.glubina}`}>ГЛУБИНА</span></div>

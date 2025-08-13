@@ -191,10 +191,12 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
 
     }, [collected, mistakes, round, onWin, onLose, status, currentRecipeData, isAdvancing, settings]);
 
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (gameAreaRef.current) {
+            e.preventDefault();
+            const pointer = 'touches' in e ? e.touches[0] : e;
             const rect = gameAreaRef.current.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const x = ((pointer.clientX - rect.left) / rect.width) * 100;
             setPanX(x);
         }
     };
@@ -219,7 +221,13 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
     };
 
     return (
-        <div ref={gameAreaRef} onMouseMove={handleMouseMove} className="w-full h-full bg-gradient-to-b from-amber-800 to-stone-900 flex flex-col items-center p-4 relative overflow-hidden cursor-none">
+        <div 
+            ref={gameAreaRef} 
+            onMouseMove={handlePointerMove} 
+            onTouchMove={handlePointerMove}
+            onTouchStart={handlePointerMove}
+            className="w-full h-full bg-gradient-to-b from-amber-800 to-stone-900 flex flex-col items-center p-4 relative overflow-hidden cursor-none"
+        >
             {status === 'won' && <AladkiWinScreen onContinue={handleWinContinue} />}
             {status === 'lost' && (
                 <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center text-5xl">

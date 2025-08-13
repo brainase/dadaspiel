@@ -171,42 +171,46 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
         };
     }, [round, status, character, switchMode]);
 
+    const getPointerPosition = (e: React.MouseEvent | React.TouchEvent) => {
+        if (!containerRef.current) return { x: 0, y: 0, clientX: 0, clientY: 0 };
+        const rect = containerRef.current.getBoundingClientRect();
+        const pointer = 'touches' in e ? e.touches[0] : e;
+        if (!pointer) return { x: 0, y: 0, clientX: 0, clientY: 0 };
+        const x = ((pointer.clientX - rect.left) / rect.width) * 100;
+        const y = ((pointer.clientY - rect.top) / rect.height) * 100;
+        return { x, y, clientX: pointer.clientX, clientY: pointer.clientY };
+    };
 
-    const handleMouseDown = (e: React.MouseEvent, id: number) => {
+    const handlePointerDown = (e: React.MouseEvent | React.TouchEvent, id: number) => {
+        e.preventDefault();
         const shape = shapes.find(s => s.id === id);
         if (!shape || shape.isPlaced || hasFinished.current) return;
 
-        if (containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const mouseX = ((e.clientX - rect.left) / rect.width) * 100;
-            const mouseY = ((e.clientY - rect.top) / rect.height) * 100;
-            setInteraction({
-                id,
-                offset: { x: mouseX - shape.pos.x, y: mouseY - shape.pos.y },
-                startX: e.clientX,
-                startY: e.clientY,
-                isDragging: false,
-            });
-        }
+        const pos = getPointerPosition(e);
+        setInteraction({
+            id,
+            offset: { x: pos.x - shape.pos.x, y: pos.y - shape.pos.y },
+            startX: pos.clientX,
+            startY: pos.clientY,
+            isDragging: false,
+        });
     };
     
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (!interaction || !containerRef.current) return;
+        e.preventDefault();
 
-        const rect = containerRef.current.getBoundingClientRect();
-        const mouseX = ((e.clientX - rect.left) / rect.width) * 100;
-        const mouseY = ((e.clientY - rect.top) / rect.height) * 100;
-
-        const dx = e.clientX - interaction.startX;
-        const dy = e.clientY - interaction.startY;
+        const pos = getPointerPosition(e);
+        const dx = pos.clientX - interaction.startX;
+        const dy = pos.clientY - interaction.startY;
         if (!interaction.isDragging && (dx * dx + dy * dy) > 25) {
             setInteraction(i => i ? { ...i, isDragging: true } : null);
         }
 
-        setShapes(prev => prev.map(s => s.id === interaction.id ? { ...s, pos: { x: mouseX - interaction.offset.x, y: mouseY - interaction.offset.y } } : s));
+        setShapes(prev => prev.map(s => s.id === interaction.id ? { ...s, pos: { x: pos.x - interaction.offset.x, y: pos.y - interaction.offset.y } } : s));
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
         if (!interaction) return;
 
         const shape = shapes.find(s => s.id === interaction.id);
@@ -325,7 +329,16 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
     }, [shapes]);
 
     return (
-        <div ref={containerRef} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} className="w-full h-full flex flex-col items-center p-4 relative overflow-hidden" style={backgroundStyle}>
+        <div 
+            ref={containerRef} 
+            onMouseMove={handlePointerMove} 
+            onMouseUp={handlePointerUp} 
+            onMouseLeave={handlePointerUp} 
+            onTouchMove={handlePointerMove}
+            onTouchEnd={handlePointerUp}
+            className="w-full h-full flex flex-col items-center p-4 relative overflow-hidden" 
+            style={backgroundStyle}
+        >
             {status === 'won' && <KvirKontrolWinScreen onContinue={handleWinContinue} />}
             
             {status === 'playing' && <>
@@ -365,7 +378,8 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
                                     transition: s.isPlaced ? 'all 0.3s ease' : 'none',
                                     zIndex: interaction?.id === s.id ? 10 : 1,
                                 }}
-                                onMouseDown={e => handleMouseDown(e, s.id)}
+                                onMouseDown={e => handlePointerDown(e, s.id)}
+                                onTouchStart={e => handlePointerDown(e, s.id)}
                             >
                                {Renderer ? <Renderer path={s.path} {...s.rendererProps} /> : null}
                             </div>

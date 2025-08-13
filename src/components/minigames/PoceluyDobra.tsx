@@ -248,7 +248,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
     const dobroScale = 1 + (80 - dobroX) / 70 * 2.5;
 
     return (
-        <div className="w-full h-full bg-gradient-to-br from-[#d299c2] to-[#fef9d7] flex items-center justify-start p-4 relative overflow-hidden cursor-pointer" onClick={handleParry}>
+        <div className="w-full h-full bg-gradient-to-br from-[#d299c2] to-[#fef9d7] flex items-center justify-start p-4 relative overflow-hidden cursor-pointer" onClick={handleParry} onTouchStart={handleParry}>
              <style>{`
                 @keyframes hit-shake { 0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-8px, 0px); } 30% { transform: translate(8px, 0px); } 50% { transform: translate(0, 0); } }
                 @keyframes parry-zone-glow { 0%, 100% { box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.7); } 50% { box-shadow: 0 0 35px 15px rgba(0, 255, 255, 0.9); } }

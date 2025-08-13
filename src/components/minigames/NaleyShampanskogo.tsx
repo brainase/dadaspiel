@@ -236,10 +236,14 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
         3: { visibleTime: 3.5, hiddenTime: 3.0, speed: 0.16, rotationSpeed: 0.003, fillRate: 0.9 },
     }[round]), [round]);
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handlePointerMove = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
         if (gameAreaRef.current && !hasFinished.current) {
+            e.preventDefault();
             const rect = gameAreaRef.current.getBoundingClientRect();
-            setGlassPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+            const pointer = 'touches' in e ? e.touches[0] : e;
+            if (pointer) {
+                setGlassPos({ x: pointer.clientX - rect.left, y: pointer.clientY - rect.top });
+            }
         }
     };
     
@@ -412,7 +416,13 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
 
 
     return (
-        <div ref={gameAreaRef} onMouseMove={handleMouseMove} className="w-full h-full cursor-none relative overflow-hidden p-4 flex flex-col items-center">
+        <div 
+            ref={gameAreaRef} 
+            onMouseMove={handlePointerMove} 
+            onTouchMove={handlePointerMove} 
+            onTouchStart={handlePointerMove}
+            className="w-full h-full cursor-none relative overflow-hidden p-4 flex flex-col items-center"
+        >
             <GalleryBackground />
             {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} />}
             

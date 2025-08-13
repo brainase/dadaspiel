@@ -145,20 +145,23 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
         } catch (e) { console.error("Could not init audio", e); }
     }, [isMuted]);
 
-    // --- Обработчики мыши ---
-    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // --- Обработчики мыши и касаний ---
+    const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
         if (isShattered || hasFinished.current) return;
+        e.preventDefault();
         playSound(SoundType.GENERIC_CLICK);
         setupAudio(); // Запускаем звук при первом клике
         setDragState({ isDragging: true, progress: 0 });
     }, [isShattered, hasFinished.current, setupAudio, playSound]);
     
-    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const handlePointerMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
         if (!dragState.isDragging || !containerRef.current) return;
+        e.preventDefault();
         
+        const pointer = 'touches' in e ? e.touches[0] : e;
         const rect = containerRef.current.getBoundingClientRect();
         // Прогресс зависит от того, как далеко вправо утащили курсор
-        const progress = Math.min(1, Math.max(0, (e.clientX - rect.left) / (rect.width * 0.7)));
+        const progress = Math.min(1, Math.max(0, (pointer.clientX - rect.left) / (rect.width * 0.7)));
         setDragState(d => ({ ...d, progress }));
 
         // Обновляем громкость глитча
@@ -169,7 +172,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
 
     }, [dragState.isDragging, isMuted]);
 
-    const handleMouseUp = useCallback(() => {
+    const handlePointerUp = useCallback(() => {
         if (!dragState.isDragging) return;
         
         if (dragState.progress >= 1) { // Если утащили до конца
@@ -257,7 +260,18 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
     };
     
     return (
-        <div ref={containerRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} className="w-full h-full flex flex-col items-center justify-center bg-gray-800 cursor-grab active:cursor-grabbing relative" style={hasWon ? undefined : glitchStyle}>
+        <div 
+            ref={containerRef} 
+            onMouseDown={handlePointerDown} 
+            onMouseMove={handlePointerMove} 
+            onMouseUp={handlePointerUp} 
+            onMouseLeave={handlePointerUp}
+            onTouchStart={handlePointerDown}
+            onTouchMove={handlePointerMove}
+            onTouchEnd={handlePointerUp}
+            className="w-full h-full flex flex-col items-center justify-center bg-gray-800 cursor-grab active:cursor-grabbing relative" 
+            style={hasWon ? undefined : glitchStyle}
+        >
             <style>{`
                 @keyframes shatter-fly {
                     from { opacity: 1; transform: translate(0,0) rotate(0) scale(1); }

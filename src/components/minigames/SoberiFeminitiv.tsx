@@ -121,30 +121,34 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
     }, [draggedLetter, onLose, status]), status === 'playing');
 
     // Начало перетаскивания.
-    const handleMouseDown = (e: React.MouseEvent, id: number) => {
+    const handlePointerDown = (e: React.MouseEvent | React.TouchEvent, id: number) => {
+        e.preventDefault();
         const letter = letters.find(l => l.id === id);
         if (!letter || letter.isPlaced || hasFinished.current) return;
         if (containerRef.current) {
             const rect = containerRef.current.getBoundingClientRect();
-            const mouseX = ((e.clientX - rect.left) / rect.width) * 100;
-            const mouseY = ((e.clientY - rect.top) / rect.height) * 100;
+            const pointer = 'touches' in e ? e.touches[0] : e;
+            const mouseX = ((pointer.clientX - rect.left) / rect.width) * 100;
+            const mouseY = ((pointer.clientY - rect.top) / rect.height) * 100;
             setDraggedLetter({ id, offset: { x: mouseX - letter.pos.x, y: mouseY - letter.pos.y } });
         }
     };
     
     // Процесс перетаскивания.
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (!draggedLetter || !containerRef.current) return;
+        e.preventDefault();
         const rect = containerRef.current.getBoundingClientRect();
-        const mouseX = ((e.clientX - rect.left) / rect.width) * 100;
-        const mouseY = ((e.clientY - rect.top) / rect.height) * 100;
+        const pointer = 'touches' in e ? e.touches[0] : e;
+        const mouseX = ((pointer.clientX - rect.left) / rect.width) * 100;
+        const mouseY = ((pointer.clientY - rect.top) / rect.height) * 100;
         setLetters(l => l.map(letter =>
             letter.id === draggedLetter.id ? { ...letter, pos: { x: mouseX - draggedLetter.offset.x, y: mouseY - draggedLetter.offset.y } } : letter
         ));
     };
 
     // Окончание перетаскивания.
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
         if (!draggedLetter) return;
         const letterIndex = letters.findIndex(l => l.id === draggedLetter.id);
         const letter = letters[letterIndex];
@@ -178,7 +182,15 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
     };
 
     return (
-        <div ref={containerRef} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} className="w-full h-full bg-gradient-to-b from-pink-300 to-fuchsia-300 flex flex-col items-center p-4 relative overflow-hidden select-none">
+        <div 
+            ref={containerRef} 
+            onMouseMove={handlePointerMove} 
+            onMouseUp={handlePointerUp} 
+            onMouseLeave={handlePointerUp}
+            onTouchMove={handlePointerMove}
+            onTouchEnd={handlePointerUp}
+            className="w-full h-full bg-gradient-to-b from-pink-300 to-fuchsia-300 flex flex-col items-center p-4 relative overflow-hidden select-none"
+        >
             {status === 'won' && <SoberiFeminitivWinScreen onContinue={handleWinContinue} finalWord={gameWords[gameWords.length - 1]} />}
             
             {status === 'playing' && <>
@@ -191,7 +203,11 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
                      {/* Рендерим летающие буквы */}
                      {letters.map(l => (
                         !l.isPlaced && (
-                            <div key={l.id} onMouseDown={(e) => handleMouseDown(e, l.id)} className="absolute w-12 h-12 flex items-center justify-center bg-white pixel-border cursor-grab active:cursor-grabbing text-3xl text-pink-800" style={{ left: `${l.pos.x}%`, top: `${l.pos.y}%` }}>
+                            <div 
+                                key={l.id} 
+                                onMouseDown={(e) => handlePointerDown(e, l.id)} 
+                                onTouchStart={(e) => handlePointerDown(e, l.id)}
+                                className="absolute w-12 h-12 flex items-center justify-center bg-white pixel-border cursor-grab active:cursor-grabbing text-3xl text-pink-800" style={{ left: `${l.pos.x}%`, top: `${l.pos.y}%` }}>
                                 {l.char}
                             </div>
                         )

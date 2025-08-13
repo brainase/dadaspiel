@@ -269,9 +269,14 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
         playSound(SoundType.BUTTON_CLICK);
         onWin();
     }
+    
+    const handleWordInteract = (e: React.MouseEvent | React.TouchEvent, word: FlyingWord) => {
+        e.stopPropagation();
+        handleWordClick(word);
+    };
 
     return (
-        <div ref={containerRef} className="w-full h-full bg-gray-900 flex flex-col relative overflow-hidden" onClick={handleBackgroundClick}>
+        <div ref={containerRef} className="w-full h-full bg-gray-900 flex flex-col relative overflow-hidden" onClick={handleBackgroundClick} onTouchStart={handleBackgroundClick}>
             {status === 'won' && <BoitsovskiyKlubFeminitivovWinScreen onContinue={handleWinContinue} />}
 
             <div className="absolute top-16 left-1/2 -translate-x-1/2 text-center text-white z-10">
@@ -285,7 +290,8 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
                     <div key={w.id} 
                         className={`absolute text-2xl md:text-3xl font-bold cursor-pointer whitespace-nowrap ${w.isTransformed ? 'text-fuchsia-400' : 'text-white'}`} 
                         style={{ left: `${w.pos.x}%`, top: `${w.pos.y}%`, transition: 'left 0.1s linear', textShadow: '2px 2px #000' }}
-                        onClick={(e) => { e.stopPropagation(); handleWordClick(w); }}
+                        onClick={(e) => handleWordInteract(e, w)}
+                        onTouchStart={(e) => handleWordInteract(e, w)}
                     >
                         {w.text}
                     </div>
