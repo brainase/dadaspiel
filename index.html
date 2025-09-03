@@ -27,18 +27,6 @@
         color: #fff;
         text-shadow: 2px 2px 0px #000;
       }
-      #game-container {
-        /* 
-         * Это ключевое правило для адаптивного масштабирования.
-         * Мы устанавливаем базовый размер шрифта для всего игрового контейнера,
-         * используя container query-единицы (cqi), которые привязаны к ширине контейнера.
-         * 1.6cqi означает "1.6% от ширины контейнера".
-         * clamp() обеспечивает, что шрифт не станет слишком маленьким (10px) или слишком большим (18px).
-         * Так как все размеры в Tailwind (text-xl, p-4, и т.д.) используют rem, они теперь будут
-         * масштабироваться пропорционально, решая проблему на мобильных устройствах.
-        */
-        font-size: clamp(10px, 1.6cqi, 18px);
-      }
       .pixel-border {
         border: 4px solid #000;
         box-shadow: 
@@ -101,7 +89,6 @@
         position: relative; /* For absolutely positioned children in minigames */
       }
     </style>
-<link rel="stylesheet" href="/index.css">
 </head>
   <body>
     <div id="root"></div>
