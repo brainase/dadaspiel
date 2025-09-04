@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSession, useSettings } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
@@ -158,6 +159,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
         timeSinceLastSpawn.current += deltaTime;
         if (timeSinceLastSpawn.current > roundSettings.spawnInterval / speedMultiplier) {
             timeSinceLastSpawn.current = 0;
+            playSound(SoundType.KISS_SPAWN);
             setKisses(k => [...k, {
                 id: kissCounter.current++,
                 x: dobroX - 10,
@@ -217,7 +219,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
             const parriedKiss = parryableKisses[0];
             setKisses(k => k.filter(kiss => kiss.id !== parriedKiss.id));
             setDobroX(x => Math.min(100, x + roundSettings.push));
-            playSound(SoundType.DESTROY);
+            playSound(SoundType.PARRY);
             setIsDobroHit(true);
             setTimeout(() => setIsDobroHit(false), 200);
 

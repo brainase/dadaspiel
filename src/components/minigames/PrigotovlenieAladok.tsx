@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { ALADKI_RECIPES } from '../../data/recipeData';
@@ -140,7 +141,7 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
                    const neededCount = currentRecipeData.recipe[item.text] || 0;
 
                    if (item.isGood && currentCount < neededCount) {
-                       playSound(SoundType.ITEM_CATCH_GOOD);
+                       playSound(SoundType.PLOP);
                        setCollected(c => ({...c, [item.text]: (c[item.text] || 0) + 1}));
                    } else {
                         // If mistake was not forgiven by an ability, apply penalty

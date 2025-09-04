@@ -21,6 +21,21 @@ import { DebugAnimationViewer } from './src/components/screens/DebugAnimationVie
 
 import { minigameComponentMap } from './src/components/minigames';
 
+// Helper to determine which music track to play for a given minigame
+const getMusicForMinigame = (id: string): MusicType | null => {
+    if (["1-1", "1-3"].includes(id)) return MusicType.AMBIENT_GALLERY;
+    if (id === "1-2") return MusicType.AMBIENT_KVIR;
+    if (id === "2-1") return MusicType.AMBIENT_DANCE;
+    if (id === "2-3") return MusicType.AMBIENT_ZEN;
+    if (id === "3-1") return MusicType.AMBIENT_STREET;
+    if (["4-1", "4-2"].includes(id)) return MusicType.AMBIENT_FEMINIST_FIGHT;
+    if (id === "5-1") return MusicType.AMBIENT_KITCHEN;
+    if (["5-2", "6-2"].includes(id)) return MusicType.AMBIENT_TENSION;
+    if (id === "6-1") return MusicType.AMBIENT_NATURE;
+    if (id === "6-3") return MusicType.LOOP_VACUUM;
+    return null; // For games with no bg music, like 3-2 (Pereverni Kalendar)
+}
+
 // Главный компонент приложения, который отвечает за отображение нужного экрана.
 const App: React.FC = () => {
     // Получаем необходимые данные и функции из разделенных контекстов.
@@ -38,14 +53,20 @@ const App: React.FC = () => {
 
     // Управление фоновой музыкой
     useEffect(() => {
-        if (screen === GameScreen.PROFILE_SELECTION || screen === GameScreen.CASE_SELECTION || screen === GameScreen.LEADERBOARD) {
+        if (screen === GameScreen.MINIGAME_PLAY && currentMinigame) {
+            const musicType = getMusicForMinigame(currentMinigame.id);
+            if (musicType !== null) {
+                startMusic(musicType);
+            } else {
+                stopMusic();
+            }
+        } else if (screen === GameScreen.PROFILE_SELECTION || screen === GameScreen.CASE_SELECTION || screen === GameScreen.LEADERBOARD) {
             startMusic(MusicType.MENU);
-        } else if (screen === GameScreen.MINIGAME_PLAY) {
-            startMusic(MusicType.TENSE_GAME);
         } else {
+            // Stop music on any other screen (intros, outros, etc.)
             stopMusic();
         }
-    }, [screen]);
+    }, [screen, currentMinigame]);
     
     const profilePendingDeletion = profiles.find(p => p.id === profileToDeleteId);
 

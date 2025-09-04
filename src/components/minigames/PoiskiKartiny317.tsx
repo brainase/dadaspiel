@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { distractorWords } from '../../data/wordData';
 import { useSettings } from '../../context/GameContext';
@@ -39,11 +40,12 @@ const FindTheNumber: React.FC<{ onFound: () => void }> = ({ onFound }) => {
     const { playSound } = useSettings();
 
     const shuffleNumbers = useCallback(() => {
+        playSound(SoundType.SWOOSH);
         const arr: number[] = Array.from({ length: 50 }, () => Math.floor(100 + Math.random() * 900));
         const randomIndex = Math.floor(Math.random() * arr.length);
         arr[randomIndex] = 317;
         setNumbers(arr.sort(() => Math.random() - 0.5));
-    }, []);
+    }, [playSound]);
 
     useEffect(() => {
         shuffleNumbers();
@@ -291,7 +293,7 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
     const handleTear = useCallback(() => {
         if (tearState >= 5) return;
         
-        playSound(SoundType.GENERIC_CLICK);
+        playSound(SoundType.TEAR);
         const newTearState = tearState + 1;
         setTearState(newTearState);
 

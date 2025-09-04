@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode, useMemo, useRef } from 'react';
 import { GameScreen, Character, CaseData, LogEntry, PlayerProfile } from '../../types';
 import { CASES } from '../data/caseData';
@@ -305,6 +306,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const winMinigame = useCallback(() => {
         if (isTransitioning.current) return; isTransitioning.current = true;
+        stopMusic(); // Stop background music for the win animation's sound
         playSound(SoundType.PLAYER_WIN);
         if (isAbsurdEdgeBonusRound) { logEvent("Absurd Edge win! +2000 bonus."); setSessionScore(s => s + 2000); }
         setIsAbsurdEdgeBonusRound(false);
@@ -314,6 +316,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const loseMinigame = useCallback(() => {
         if (isTransitioning.current) return;
+        stopMusic(); // Stop background music during the loss sequence
         setIsAbsurdEdgeBonusRound(false);
 
         // Специальная обработка для бонусной игры "Переверни Календарь" (ID "3-2").

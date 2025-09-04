@@ -342,6 +342,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             const isCaught = p.x >= glassOpeningLeftX && p.x <= glassOpeningRightX && p.y >= glassTopY && p.y <= glassTopY + 15;
             if (isCaught) {
                 fillToAdd += roundSettings.fillRate * 12 * dtSec;
+                playSound(SoundType.LIQUID_CATCH);
             } else {
                 const newParticle = {
                     ...p,
@@ -369,6 +370,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
                 if (w.isVisible) {
                     return { ...w, isVisible: false, timer: roundSettings.hiddenTime };
                 } else {
+                    playSound(SoundType.SWOOSH);
                     const rect = gameAreaRef.current?.getBoundingClientRect();
                     return {
                         ...w,
@@ -394,7 +396,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             }
             return { ...w, timer: newTimer };
         });
-      }, [glassPos, status, round, roundSettings, onLose, waiter, easterEggStage, killPlayer]), status === 'playing');
+      }, [glassPos, status, round, roundSettings, onLose, waiter, easterEggStage, killPlayer, playSound]), status === 'playing');
 
     useEffect(() => {
         if (fill >= 100) {

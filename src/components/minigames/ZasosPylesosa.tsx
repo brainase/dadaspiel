@@ -5,7 +5,7 @@ import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
 import { CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
-import { SoundType } from '../../utils/AudioEngine';
+import { SoundType, updateMusicParameter } from '../../utils/AudioEngine';
 
 // Компонент пиксельного пылесоса
 const PixelVacuum: React.FC<{animationToggle: boolean}> = ({ animationToggle }) => {
@@ -119,6 +119,10 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
         const progress = (settings.survivalTime - newTimeLeft) / settings.survivalTime;
         const scrollSpeed = settings.baseScrollSpeed + progress * 45;
         const spawnChance = (0.08 + progress * 0.15) * settings.spawnRateMultiplier;
+
+        // --- Управление звуком пылесоса ---
+        const pitch = 1.0 + progress * 1.5; // Pitch increases from 1.0 to 2.5
+        updateMusicParameter('pitch', pitch);
 
         // --- Скроллинг фона ---
         setScrollOffset(offset => (offset + scrollSpeed * dtSec) % 100);

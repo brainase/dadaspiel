@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
@@ -180,9 +181,18 @@ export const PereverniKalendarWinScreen: React.FC<{ onContinue: () => void; onPl
 const Calendar: React.FC<{
     calendarData: any;
     onClick: (id: number) => void;
-}> = ({ calendarData, onClick }) => {
-    if (!calendarData) return null; // Add a guard clause in case data is missing
+    playSound: (type: SoundType) => void;
+}> = ({ calendarData, onClick, playSound }) => {
+    if (!calendarData) return null;
     const { id, type, x, y, isFlipped, isFalling } = calendarData;
+    const hasFallen = useRef(false);
+
+    useEffect(() => {
+        if (isFalling && !hasFallen.current) {
+            hasFallen.current = true;
+            playSound(SoundType.SWOOSH);
+        }
+    }, [isFalling, playSound]);
     
     const fallStyle: React.CSSProperties = isFalling ? {
         animation: 'fall-to-fire 1s ease-in forwards'
@@ -459,7 +469,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
         if (!calendar) return;
 
         if (calendar.type === '3') {
-            playSound(SoundType.GENERIC_CLICK);
+            playSound(SoundType.FLIP);
             const newFlippedCount = flippedCount + 1;
             const timeToAdd = 5 / newFlippedCount;
             setTimeLeft(t => Math.min(MAX_TIME, t + timeToAdd));
@@ -563,7 +573,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
             {status === 'lost' && (
                 <div className="absolute inset-0 z-40 bg-black/80 flex flex-col items-center justify-center text-center p-4">
                      <div className="absolute animate-[lose-calendar-anim_4s_ease-in-out_forwards]">
-                        <Calendar calendarData={calendars.find(c => c.id === losingCalendarId)} onClick={() => {}} />
+                        <Calendar calendarData={calendars.find(c => c.id === losingCalendarId)} onClick={() => {}} playSound={playSound} />
                      </div>
                      {/* Container for the video button, which fades in */}
                      <div className="opacity-0 animate-[fadeIn_2s_1.5s_ease-out_forwards] z-10">
@@ -611,7 +621,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
                 
                 <div className="w-full h-full relative z-10">
                     {calendars.map(cal => (
-                        <Calendar key={cal.id} calendarData={cal} onClick={handleFlip} />
+                        <Calendar key={cal.id} calendarData={cal} onClick={handleFlip} playSound={playSound}/>
                     ))}
                     {floatingScores.map(score => (
                         <div key={score.id} className="floating-score" style={{ left: `${score.x}%`, top: `${score.y}%` }}>
