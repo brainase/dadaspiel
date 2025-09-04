@@ -27,6 +27,7 @@ export enum SoundType {
   WIN_NEPODAVIS,
   WIN_PYLESOS,
   WIN_KALENDAR,
+  LOSE_KALENDAR,
   DADA_ECSTASY,
 }
 
@@ -610,6 +611,44 @@ export const playSound = (type: SoundType) => {
             crackleNoise.connect(crackleFilter).connect(crackleGain).connect(ctx.destination);
             crackleNoise.start(ctx.currentTime);
         }, 150);
+        break;
+
+      case SoundType.LOSE_KALENDAR:
+        // Sad piano chord (A minor)
+        const notes = [220, 261.63, 329.63];
+        notes.forEach(freq => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain).connect(ctx.destination);
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.15, t);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.5);
+            osc.start(t);
+            osc.stop(t + 1.5);
+        });
+        
+        // Page burn/crackle sound
+        const crackleT = t + 0.5; // Start after chord
+        const crackleNoise = ctx.createBufferSource();
+        const crackleBufferSize = ctx.sampleRate * 1.0;
+        const crackleBuffer = ctx.createBuffer(1, crackleBufferSize, ctx.sampleRate);
+        const crackleOutput = crackleBuffer.getChannelData(0);
+        for (let i = 0; i < crackleBufferSize; i++) { crackleOutput[i] = Math.random() * 2 - 1; }
+        crackleNoise.buffer = crackleBuffer;
+        
+        const crackleFilter = ctx.createBiquadFilter();
+        crackleFilter.type = 'highpass';
+        crackleFilter.frequency.setValueAtTime(3000, crackleT);
+        crackleFilter.Q.value = 5;
+
+        const crackleGain = ctx.createGain();
+        crackleGain.gain.setValueAtTime(0.08, crackleT);
+        crackleGain.gain.exponentialRampToValueAtTime(0.0001, crackleT + 1.0);
+
+        crackleNoise.connect(crackleFilter).connect(crackleGain).connect(ctx.destination);
+        crackleNoise.start(crackleT);
+        crackleNoise.stop(crackleT + 1.0);
         break;
   }
 };

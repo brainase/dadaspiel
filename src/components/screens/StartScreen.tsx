@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useProfile, useNavigation, useSettings } from '../../context/GameContext';
 import { CHARACTERS } from '../../data/characterData';
 import { CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
@@ -14,6 +14,19 @@ export const StartScreen: React.FC = () => {
   
   const [playerName, setPlayerName] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [pixelSize, setPixelSize] = useState(8); // Default to a larger size
+
+  useEffect(() => {
+    // Set the pixel size based on window width after the component mounts
+    // to prevent hydration errors from direct window.innerWidth access in render.
+    const handleResize = () => {
+      setPixelSize(window.innerWidth < 768 ? 6 : 8);
+    };
+    handleResize(); // Set initial size
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
 
   const completedChars = useMemo(() => new Set(profiles.filter(p => p.gameCompleted).map(p => p.character)), [profiles]);
   const isBlackPlayerUnlocked = completedChars.has(Character.KANILA) || completedChars.has(Character.SEXISM);
@@ -66,7 +79,7 @@ export const StartScreen: React.FC = () => {
                 
                 <div key={selectedIndex} className="text-center char-art-container flex flex-col items-center justify-center flex-grow">
                   <div className={`w-[128px] h-[205px] md:w-[160px] md:h-[256px] flex items-center justify-center ${isLocked ? 'opacity-50 filter grayscale' : ''}`}>
-                      {artData && <PixelArt artData={artData} palette={PIXEL_ART_PALETTE} pixelSize={window.innerWidth < 768 ? 6 : 8} />}
+                      {artData && <PixelArt artData={artData} palette={PIXEL_ART_PALETTE} pixelSize={pixelSize} />}
                   </div>
                   <h3 className="text-xl md:text-2xl mt-2 md:mt-4">{currentCharData.name}</h3>
                 </div>

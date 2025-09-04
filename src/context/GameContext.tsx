@@ -38,6 +38,7 @@ interface ProfileContextType {
     confirmDeleteProfile: () => void;
     cancelDeleteProfile: () => void;
     logout: () => void;
+    dynamicCases: CaseData[];
 }
 
 interface SessionContextType {
@@ -135,6 +136,38 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const activeProfile = useMemo(() => profiles.find(p => p.id === activeProfileId) || null, [profiles, activeProfileId]);
     const character = useMemo(() => debugCharacter || activeProfile?.character || null, [activeProfile, debugCharacter]);
 
+    const dynamicCases = useMemo(() => {
+        // In debug mode, always show all cases and minigames unconditionally for testing purposes.
+        if (debugMode) {
+            return CASES;
+        }
+    
+        if (!activeProfile) return CASES;
+    
+        const today = new Date();
+        const isThirdOfSeptember = today.getMonth() === 8 && today.getDate() === 3;
+    
+        // The "Pereverni Kalendar" minigame should be hidden for Kanila and Sexism if it's not September 3rd.
+        if (
+          (activeProfile.character === Character.KANILA || activeProfile.character === Character.SEXISM) &&
+          !isThirdOfSeptember
+        ) {
+          return CASES.map(c => {
+            if (c.id === 3) {
+              // Filter out minigame "3-2" from Case 3
+              return {
+                ...c,
+                minigames: c.minigames.filter(mg => mg.id !== "3-2"),
+              };
+            }
+            return c;
+          }).filter(c => c.minigames.length > 0); // Also, filter out any case that might have become empty.
+        }
+    
+        // For Black Player or on September 3rd, show all games.
+        return CASES;
+    }, [activeProfile, debugMode]);
+
     // --- Загрузка и базовые действия ---
     useEffect(() => {
         try { const savedProfiles = localStorage.getItem(PROFILES_STORAGE_KEY); if (savedProfiles) setProfiles(JSON.parse(savedProfiles)); } catch (error) { console.error("Failed to load profiles:", error); }
@@ -220,7 +253,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // --- Логика сессии/игры ---
     const startCase = useCallback((caseId: number) => {
-        const selectedCase = CASES.find(c => c.id === caseId);
+        const selectedCase = dynamicCases.find(c => c.id === caseId);
         if (!selectedCase || !activeProfile) return;
         
         logEvent(`Case ${caseId} started by ${activeProfile.name}`);
@@ -232,7 +265,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const startIndex = savedProgress >= selectedCase.minigames.length ? 0 : savedProgress;
         setMinigameIndex(startIndex);
         setScreen(GameScreen.MINIGAME_INTRO);
-    }, [activeProfile, logEvent, sessionScore, abilityUsedInCase]);
+    }, [activeProfile, logEvent, sessionScore, abilityUsedInCase, dynamicCases]);
 
     const nextMinigame = useCallback((noScore: boolean = false) => {
         if (!currentCase || !activeProfileId) return;
@@ -250,7 +283,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (p.id === activeProfileId) {
                     const newProgress = { ...p.progress, [currentCase.id]: Math.max(p.progress[currentCase.id] || 0, newMinigameIndex) };
                     const updatedProfile = { ...p, progress: newProgress, highScore: Math.max(p.highScore, finalScore) };
-                    allCasesComplete = CASES.every(c => (updatedProfile.progress[c.id] || 0) >= c.minigames.length);
+                    allCasesComplete = dynamicCases.every(c => (updatedProfile.progress[c.id] || 0) >= c.minigames.length);
                     if (allCasesComplete && !updatedProfile.gameCompleted) {
                         logEvent(`GAME COMPLETED with ${updatedProfile.character}.`);
                         return { ...updatedProfile, gameCompleted: true };
@@ -268,7 +301,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             return newProfiles;
         });
-    }, [currentCase, activeProfileId, minigameIndex, sessionScore, logEvent]);
+    }, [currentCase, activeProfileId, minigameIndex, sessionScore, logEvent, dynamicCases]);
     
     const winMinigame = useCallback(() => {
         if (isTransitioning.current) return; isTransitioning.current = true;
@@ -282,6 +315,18 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loseMinigame = useCallback(() => {
         if (isTransitioning.current) return;
         setIsAbsurdEdgeBonusRound(false);
+
+        // Специальная обработка для бонусной игры "Переверни Календарь" (ID "3-2").
+        // Это бонусная игра, поэтому проигрыш не должен отнимать жизнь.
+        // Игрок переходит к следующей мини-игре без очков.
+        if (currentCase?.minigames[minigameIndex]?.id === '3-2') {
+            logEvent("Bonus game 'Pereverni Kalendar' lost. Proceeding without penalty.");
+            playSound(SoundType.BUTTON_CLICK); // Нейтральный звук
+            isTransitioning.current = true;
+            nextMinigame(true); // Переход к следующей игре без очков.
+            return;
+        }
+
         if (character === Character.KANILA && Math.random() < 0.5) { logEvent("Anarchic Glitch! Loss becomes a win (no score)."); playSound(SoundType.TRANSFORM_SUCCESS); isTransitioning.current = true; nextMinigame(true); return; }
         isTransitioning.current = true; playSound(SoundType.PLAYER_LOSE);
         logEvent(`Minigame lost: ${currentCase?.minigames[minigameIndex]?.name || 'standalone'}`);
@@ -296,11 +341,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const killPlayer = useCallback(() => { if (isTransitioning.current) return; isTransitioning.current = true; playSound(SoundType.PLAYER_LOSE); logEvent("Player instantly killed."); setLives(0); setTimeout(() => logout(), 2000); }, [playSound, logEvent, logout]);
     
     const jumpToMinigame = useCallback((id: string) => {
-        for (const c of CASES) {
+        for (const c of dynamicCases) {
             const mgIndex = c.minigames.findIndex(mg => mg.id === id);
             if (mgIndex !== -1) { logEvent(`Jumping to minigame: ${id}`); setCurrentCase(c); setMinigameIndex(mgIndex); setScreen(GameScreen.MINIGAME_PLAY); return; }
         }
-    }, [logEvent]);
+    }, [logEvent, dynamicCases]);
 
     const activateArtistInsight = useCallback(() => { if (character !== Character.SEXISM || abilityUsedInCase || isSlowMo) return; playSound(SoundType.TRANSFORM_SUCCESS); logEvent("Artist's Insight activated."); setAbilityUsedInCase(true); setIsSlowMo(true); setTimeout(() => setIsSlowMo(false), 3000); }, [character, abilityUsedInCase, isSlowMo, playSound, logEvent]);
     const activateFourthWall = useCallback(() => { if (character !== Character.BLACK_PLAYER || abilityUsedInSession || !currentCase) return; playSound(SoundType.DESTROY); logEvent("Fourth Wall activated."); setAbilityUsedInSession(true); setForcedOutro("Вы воспользовались «читом»."); setSessionScore(caseStartScore); nextMinigame(true); }, [character, abilityUsedInSession, currentCase, caseStartScore, logEvent, playSound, nextMinigame]);
@@ -310,7 +355,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // --- Memoized Context Values ---
     const navigationContextValue = useMemo(() => ({ screen, setScreen, animationToView, setAnimationToView, jumpToMinigame }), [screen, animationToView, setScreen, jumpToMinigame]);
     const settingsContextValue = useMemo(() => ({ debugMode, toggleDebug: () => setDebugMode(d => !d), isLogging, toggleLogging: () => setIsLogging(l => !l), setIsLogging, log, logEvent, isMuted, toggleMute, playSound, debugCharacter, setDebugCharacter }), [debugMode, isLogging, log, isMuted, debugCharacter, logEvent, playSound, toggleMute]);
-    const profileContextValue = useMemo(() => ({ profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, logout }), [profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, logout]);
+    const profileContextValue = useMemo(() => ({ profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, logout, dynamicCases }), [profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, logout, dynamicCases]);
     const sessionContextValue = useMemo(() => ({ character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, startCase, winMinigame, loseMinigame, killPlayer, addLife: (amount = 1) => setLives(l => l + amount), addScore: (points) => setSessionScore(s => s + points), activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge }), [character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, startCase, winMinigame, loseMinigame, killPlayer, activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge]);
 
     return (

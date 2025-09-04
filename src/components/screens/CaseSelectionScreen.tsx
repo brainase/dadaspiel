@@ -1,11 +1,10 @@
 import React from 'react';
 import { useSession, useProfile, useSettings } from '../../context/GameContext';
-import { CASES } from '../../data/caseData';
 import { SoundType } from '../../utils/AudioEngine';
 
 export const CaseSelectionScreen: React.FC = () => {
   const { startCase } = useSession();
-  const { activeProfile, logout } = useProfile();
+  const { activeProfile, logout, dynamicCases: CASES } = useProfile();
   const { playSound } = useSettings();
 
   if (!activeProfile) {

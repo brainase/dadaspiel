@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useProfile, useSettings } from '../../context/GameContext';
 import { ALL_MINIGAMES } from '../../data/caseData';
@@ -12,6 +11,7 @@ import { SoundType } from '../../utils/AudioEngine';
 const DadaEcstasyAnimation: React.FC = () => {
     // Stages: glitch (text) -> growing (sphere grows) -> pulsing (sphere pulses) -> exploding (boom)
     const [stage, setStage] = useState<'glitch' | 'growing' | 'pulsing' | 'exploding'>('glitch');
+    const [burstParticles, setBurstParticles] = useState<any[]>([]);
 
     useEffect(() => {
         // Stages: glitch (text) -> growing (sphere grows) -> pulsing (sphere pulses) -> exploding (boom)
@@ -28,24 +28,30 @@ const DadaEcstasyAnimation: React.FC = () => {
     
     const gameIcons = useMemo(() => ['🍾', '💎', '🗓️', '♀️', '🍳', '🍅', '☠️', '🍆', '🔥', '(8)', '👁️', 'О', 'Р', 'Х', 'Д', 'А'], []);
     
-    const burstParticles = useMemo(() => Array.from({ length: 50 }).map((_, i) => {
-        const angle = (i / 50) * Math.PI * 2;
-        const distance = 100; // vmin
-        const size = 2.8 + Math.random() * 1.7; // Random size between 2.8rem (45px) and 4.5rem (72px)
+    useEffect(() => {
+        if (stage === 'exploding' && burstParticles.length === 0) {
+            const particles = Array.from({ length: 50 }).map((_, i) => {
+                const angle = (i / 50) * Math.PI * 2;
+                const distance = 100; // vmin
+                const size = 2.8 + Math.random() * 1.7; // Random size
 
-        return {
-            id: i,
-            icon: gameIcons[i % gameIcons.length],
-            style: {
-                fontSize: `${size}rem`,
-                '--dx': `${Math.cos(angle) * distance}vmin`,
-                '--dy': `${Math.sin(angle) * distance}vmin`,
-                '--rot': `${(Math.random() - 0.5) * 1080}deg`,
-                animation: stage === 'exploding' ? `burst-fly-out 6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards` : 'none',
-                animationDelay: `${Math.random() * 0.2}s`
-            } as React.CSSProperties,
+                return {
+                    id: i,
+                    icon: gameIcons[i % gameIcons.length],
+                    style: {
+                        fontSize: `${size}rem`,
+                        '--dx': `${Math.cos(angle) * distance}vmin`,
+                        '--dy': `${Math.sin(angle) * distance}vmin`,
+                        '--rot': `${(Math.random() - 0.5) * 1080}deg`,
+                        animation: `burst-fly-out 6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards`,
+                        animationDelay: `${Math.random() * 0.2}s`
+                    } as React.CSSProperties,
+                };
+            });
+            setBurstParticles(particles);
         }
-    }), [stage, gameIcons]);
+    }, [stage, gameIcons, burstParticles.length]);
+
 
     const sphereBaseClasses = "absolute top-1/2 left-1/2 rounded-full dada-gradient -translate-x-1/2 -translate-y-1/2";
     let sphereDynamicClasses = "w-0 h-0 opacity-0";
@@ -108,7 +114,7 @@ const DadaEcstasyAnimation: React.FC = () => {
             <div className={`${sphereBaseClasses} ${sphereDynamicClasses} z-10`}></div>
 
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 particle-container z-30">
-                {stage === 'exploding' && burstParticles.map(p => (
+                {burstParticles.map(p => (
                     <div key={p.id} className="absolute" style={p.style}>
                         {p.icon}
                     </div>

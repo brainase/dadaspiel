@@ -207,7 +207,7 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
 
     const replacementWords = useMemo(() => ["Перформанс", "Инсталляция", "Я не знаю!"], []);
     
-    const pisyunImage = useMemo(() => pisyunImages[Math.floor(Math.random() * pisyunImages.length)], []);
+    const [pisyunImage] = useState(() => pisyunImages[Math.floor(Math.random() * pisyunImages.length)]);
     const pageContent = useMemo(() => (
         <div className="w-full h-full flex items-center justify-center">
             {pisyunImage}
