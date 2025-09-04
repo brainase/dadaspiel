@@ -115,7 +115,7 @@ const App: React.FC = () => {
 
     return (
         <GameWrapper>
-            {[GameScreen.CASE_SELECTION, GameScreen.MINIGAME_INTRO, GameScreen.MINIGAME_PLAY, GameScreen.CASE_OUTRO].includes(screen) && <HUD />}
+            <HUD />
             
             <div key={screen} className="screen-content-wrapper">
                 {renderScreen()}
