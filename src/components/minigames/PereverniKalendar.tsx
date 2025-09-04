@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
@@ -7,6 +6,7 @@ import { Character } from '../../../types';
 import { ROWANBERRY_ART_DATA } from '../../miscArt';
 import { PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 // Video Modal Component
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
@@ -615,9 +615,11 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
             
             {status === 'playing' && (
               <>
-                <div className="absolute top-16 text-center text-xl text-yellow-300 z-30">
-                    <p>Поддерживай огонь, переворачивая календари!</p>
-                </div>
+                <MinigameHUD>
+                    <div className="w-full text-center text-yellow-300">
+                        Поддерживай огонь, переворачивая календари!
+                    </div>
+                </MinigameHUD>
                 
                 <div className="w-full h-full relative z-10">
                     {calendars.map(cal => (

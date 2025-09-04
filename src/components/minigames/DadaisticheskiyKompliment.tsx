@@ -3,6 +3,7 @@ import { useSession, useSettings } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { DADA_VOCABULARY } from '../../data/wordData';
 import { SoundType } from '../../utils/AudioEngine';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 const DADA_COLORS = ['text-cyan-300', 'text-orange-300', 'text-lime-400', 'text-yellow-300', 'text-pink-500', 'text-fuchsia-400'];
 const DADA_COLOR_MAP: { [key: string]: string } = {
@@ -187,10 +188,21 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
             className="w-full h-full bg-gradient-to-br from-purple-900 to-indigo-950 flex flex-col items-center p-4 relative overflow-hidden select-none"
         >
             {winState && <DadaisticheskiyKomplimentWinScreen onContinue={handleWinContinue} winState={winState} />}
-            <div className="w-full z-20 mt-16">
-                <div className="flex justify-between items-center mb-2"><span className={`text-lg ${groupColors.shirota}`}>ШИРОТА</span><span className="text-2xl font-bold">Время: {timeLeft}</span><span className={`text-lg ${groupColors.glubina}`}>ГЛУБИНА</span></div>
-                <div className="flex gap-2 w-full h-8 pixel-border bg-black"><div className={`h-full ${shirotaBgColor}`} style={{ width: `${progress.shirota}%`, transition: 'width 0.3s ease' }}></div><div className="flex-grow"></div><div className={`h-full ${glubinaBgColor}`} style={{ width: `${progress.glubina}%`, transition: 'width 0.3s ease' }}></div></div>
-            </div>
+            <MinigameHUD>
+                <div className="w-full">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className={`text-lg ${groupColors.shirota}`}>ШИРОТА</span>
+                        <span className="text-2xl font-bold">Время: {timeLeft}</span>
+                        <span className={`text-lg ${groupColors.glubina}`}>ГЛУБИНА</span>
+                    </div>
+                    <div className="flex gap-2 w-full h-8 pixel-border bg-black">
+                        <div className={`h-full ${shirotaBgColor}`} style={{ width: `${progress.shirota}%`, transition: 'width 0.3s ease' }}></div>
+                        <div className="flex-grow"></div>
+                        <div className={`h-full ${glubinaBgColor}`} style={{ width: `${progress.glubina}%`, transition: 'width 0.3s ease' }}></div>
+                    </div>
+                </div>
+            </MinigameHUD>
+
             <div className="w-full flex-grow relative">
                 {words.map(w => <div key={w.id} className={`absolute p-1 cursor-pointer whitespace-nowrap ${w.type === 'shirota' ? groupColors.shirota : groupColors.glubina}`} style={{ left: `${w.pos.x}%`, top: `${w.pos.y}%`, transform: `translate(-50%, -50%) rotate(${w.rot}deg) scale(${w.scale})`, transition: pulsatingWordIds.includes(w.id) ? 'transform 0.1s' : 'none' }} onClick={() => handleClick(w)}>{w.text}</div>)}
             </div>

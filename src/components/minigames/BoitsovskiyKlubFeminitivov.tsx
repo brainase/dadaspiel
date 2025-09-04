@@ -4,6 +4,7 @@ import { FEMINITIVES_PAIRS } from '../../data/wordData';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 interface FlyingWord { id: number; text: string; correctText: string; pos: { x: number; y: number }; vel: { x: number; y: number }; isTransformed: boolean; isFadingOut: boolean; }
 interface Particle { id: number; pos: { x: number; y: number }; }
@@ -489,6 +490,12 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
                 <div className="absolute inset-0 bg-yellow-300 flicker pointer-events-none"></div>
                 <div className="absolute inset-0 bg-radial-gradient from-transparent to-black pointer-events-none"></div>
                 
+                <MinigameHUD>
+                    <div className="w-full text-center text-3xl">
+                        ВЫЖИВИ: {Math.ceil(timeLeft)}
+                    </div>
+                </MinigameHUD>
+
                 {renderEgoText()}
 
                 {/* Рендеринг слов */}
@@ -501,7 +508,7 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
                 {particles.map((p, i) => (
                     <div key={p.id} className="absolute w-3 h-3 bg-lime-400 particle" style={{ left: `${p.pos.x}%`, top: `${p.pos.y}%`, transform: `translate(${Math.cos(i * 45) * 50}px, ${Math.sin(i * 45) * 50}px)` }}></div>
                 ))}
-                <div className="absolute top-20 text-3xl z-20 text-white">ВЫЖИВИ: {Math.ceil(timeLeft)}</div>
+                
                 {egoState === 'shattered' && <div className="absolute inset-0 bg-red-800/70 flex items-center justify-center text-7xl font-bold">ЭГО РАЗРУШЕНО</div>}
             </>}
         </div>

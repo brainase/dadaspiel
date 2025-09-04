@@ -4,6 +4,7 @@ import { FEMINITIVES_TO_ASSEMBLE } from '../../data/wordData';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 export const SoberiFeminitivWinScreen: React.FC<{ onContinue: () => void; finalWord: string }> = ({ onContinue, finalWord }) => {
     const { playSound } = useSettings();
@@ -198,7 +199,10 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
                     @keyframes jiggle { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2) rotate(-5deg); } }
                     .jiggle-it { animation: jiggle 0.3s ease-in-out; }
                 `}</style>
-                <div className="text-3xl text-pink-800 z-20 mt-16">РАУНД: {round + 1}/{gameWords.length} | ВРЕМЯ: {Math.ceil(timeLeft)}</div>
+                <MinigameHUD>
+                <div className="text-left">РАУНД: {round + 1}/{gameWords.length}</div>
+                <div className="text-right">ВРЕМЯ: {Math.ceil(timeLeft)}</div>
+                </MinigameHUD>
                 <div className="w-full h-1/2 relative mt-4">
                      {/* Рендерим летающие буквы */}
                      {letters.map(l => (

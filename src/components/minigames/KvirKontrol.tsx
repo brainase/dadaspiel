@@ -4,6 +4,7 @@ import { SoundType } from '../../utils/AudioEngine';
 import { generateRoundShapes, ALL_COLORS } from './kvir/shapes';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 export const KvirKontrolWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
@@ -349,10 +350,16 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
                     }
                     .instruction-flash { animation: instruction-flash 0.4s ease-out; }
                 `}</style>
-                <h3 className="text-3xl mt-16 mb-2 z-20">А ВЫ КВИР? (Раунд {round}/3)</h3>
-                <p key={modeChangeEffect} className={`text-sm mb-4 z-20 text-yellow-300 ${round === 3 && character === Character.BLACK_PLAYER ? 'instruction-flash' : ''}`}>Время: {timeLeft} сек. | {getRoundInstructions()}</p>
+                <MinigameHUD>
+                    <div className="w-full text-center">
+                        <h3 className="text-3xl mb-2">А ВЫ КВИР? (Раунд {round}/3)</h3>
+                        <p key={modeChangeEffect} className={`text-sm text-yellow-300 ${round === 3 && character === Character.BLACK_PLAYER ? 'instruction-flash' : ''}`}>
+                            Время: {timeLeft} сек. | {getRoundInstructions()}
+                        </p>
+                    </div>
+                </MinigameHUD>
                 
-                <div className="w-full flex-grow relative z-20">
+                <div className="w-full h-full relative z-10">
                      {shapes.map(s => (
                         <div key={`sil-${s.id}`} className="absolute" style={{ 
                             left: `${s.target.x}%`, 

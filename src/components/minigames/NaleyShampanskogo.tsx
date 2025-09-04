@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { PixelArt } from '../core/PixelArt';
@@ -6,6 +5,7 @@ import { BOTTLE_ART_DATA } from '../../miscArt';
 import { PIXEL_ART_PALETTE } from '../../../characterArt';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 const AnimatedBottle: React.FC<{ anim: string; position: React.CSSProperties; size: string; }> = ({ anim, position, size }) => {
     const splashes = useMemo(() => Array.from({length: 20}).map((_, i) => ({
@@ -436,7 +436,11 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} />}
             
             {status === 'playing' && <>
-                <div className="text-3xl text-gray-800 z-20 mt-16" style={{textShadow: '1px 1px 2px white'}}>РАУНД: {round}/3 | ВРЕМЯ: {Math.ceil(timeLeft)}</div>
+                <MinigameHUD>
+                    <div className="w-full text-center text-3xl" style={{color: '#333', textShadow: '1px 1px 2px white'}}>
+                        РАУНД: {round}/3 | ВРЕМЯ: {Math.ceil(timeLeft)}
+                    </div>
+                </MinigameHUD>
                 <div className="flex-grow w-full relative">
                     {/* Particles */}
                     {particles.map(p => (

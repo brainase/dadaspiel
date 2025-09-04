@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { ALADKI_RECIPES } from '../../data/recipeData';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 export const AladkiWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
@@ -235,19 +235,18 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
                     РЕЦЕПТ ИСПОРЧЕН!
                 </div>
             )}
-            {/* HUD */}
-            <div className="w-full flex justify-between items-start text-lg z-10 mt-16">
-                <div>
+            <MinigameHUD>
+                <div className="text-left">
                     <h3 className="text-xl text-yellow-300 mb-2">Раунд {round + 1}: {currentRecipeData.name}</h3>
                     {renderRecipe()}
                 </div>
-                <div className="text-red-500">
+                <div className="text-red-500 text-lg">
                     Ошибки: {'X '.repeat(mistakes)} / {'X '.repeat(settings.mistakesLimit)}
                 </div>
-            </div>
+            </MinigameHUD>
 
             {/* Game Area */}
-            <div className="absolute inset-0 top-32">
+            <div className="absolute inset-0">
                  {items.map(item => (
                     <div key={item.id} className="absolute text-lg text-white" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rot}deg)`, textShadow: '2px 2px #000' }}>
                         {item.text}

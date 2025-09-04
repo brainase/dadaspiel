@@ -3,6 +3,7 @@ import { useGameLoop } from '../../hooks/useGameLoop';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 // Компонент, отображаемый при победе.
 export const FruktoviySporWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
@@ -197,8 +198,11 @@ export const FruktoviySpor: React.FC<{ onWin: () => void; onLose: () => void; is
             {/* Основной игровой интерфейс */}
             {!isPreviewing && (
                 <>
-                    <div className="w-full flex justify-between items-center text-xl z-10 mt-16 text-white text-shadow-lg"><h3>Раунд {round+1}/3: {instructionText}</h3><h3>Счёт: {score}/{settings.scoreToWin} | Ошибки: {mistakes}/{settings.mistakesLimit}</h3></div>
-                    <div className="absolute inset-0 top-32">
+                    <MinigameHUD>
+                        <h3 className="w-1/2 text-left">Раунд {round+1}/3: {instructionText}</h3>
+                        <h3 className="w-1/2 text-right">Счёт: {score}/{settings.scoreToWin} | Ошибки: {mistakes}/{settings.mistakesLimit}</h3>
+                    </MinigameHUD>
+                    <div className="absolute inset-0">
                         {items.map(item => <div key={item.id} className="absolute" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%)` }}><Fruit data={item.data} /></div>)}
                         <div className="absolute bottom-[5%] w-32 h-16 bg-yellow-900 pixel-border rounded-lg" style={{ left: `${basketX}%`, transform: 'translateX(-50%)' }}></div>
                     </div>

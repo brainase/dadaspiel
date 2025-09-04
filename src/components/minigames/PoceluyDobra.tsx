@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSession, useSettings } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
@@ -6,6 +5,7 @@ import { Character } from '../../../types';
 import { CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
 import { SoundType } from '../../utils/AudioEngine';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 interface Kiss {
     id: number;
@@ -259,6 +259,16 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
             {status === 'won' && <PoceluyDobraWinScreen onContinue={handleWinContinue} />}
             {status === 'lost' && <div className="absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center text-5xl text-red-500"><p>ЗАЦЕЛОВАН</p><p className="text-3xl mt-4">(насмерть)</p></div>}
             
+            <MinigameHUD>
+                <div className="w-full text-center text-rose-800" style={{textShadow: '1px 1px 1px #fff'}}>
+                    <p className="text-xl mb-1">Раунд {round}/3</p>
+                    <div className="w-full h-6 bg-black pixel-border mt-2" title={`Осталось времени: ${Math.ceil(timeLeft)}с`}>
+                        <div className="h-full bg-gradient-to-r from-red-500 to-yellow-400 transition-all duration-100" style={{ width: `${(timeLeft / roundSettings.duration) * 100}%` }}></div>
+                    </div>
+                    <p className="text-xl mt-2">Парируй поцелуи добра!</p>
+                </div>
+            </MinigameHUD>
+
             <div className={`absolute z-20 ${isPlayerHit ? 'animate-[hit-shake_0.2s_ease-in-out]' : ''}`} style={{ left: `${PLAYER_X}%`, top: '50%', transform: 'translateY(-50%)' }}>
                 <div className="w-[80px] h-[128px]"><PixelArt artData={charArt} palette={PIXEL_ART_PALETTE} pixelSize={4} /></div>
             </div>
@@ -289,14 +299,6 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
             {particles.map(p => (
                  <div key={p.id} className="absolute text-2xl text-red-500 pointer-events-none" style={{ left: `${p.x}%`, top: `${p.y}%` }}>{p.char}</div>
             ))}
-
-            <div className="w-full absolute top-16 left-0 px-4 z-20 text-rose-800 pointer-events-none">
-                <p className="text-xl text-center mb-1">Раунд {round}/3</p>
-                <div className="w-full h-6 bg-black pixel-border mt-2" title={`Осталось времени: ${Math.ceil(timeLeft)}с`}>
-                    <div className="h-full bg-gradient-to-r from-red-500 to-yellow-400 transition-all duration-100" style={{ width: `${(timeLeft / roundSettings.duration) * 100}%` }}></div>
-                </div>
-                 <p className="text-xl text-center mt-2">Парируй поцелуи добра!</p>
-            </div>
         </div>
     );
 };

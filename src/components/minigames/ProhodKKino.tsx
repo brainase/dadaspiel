@@ -4,6 +4,7 @@ import { STROITELNIE_TERMINY } from '../../data/wordData';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 const OBSTACLE_COLORS = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"];
 
@@ -241,7 +242,12 @@ export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMi
         >
             {gameStatus === 'won' && <ProhodKKinoWinScreen onContinue={onWin} isMuted={isMuted} />}
             {gameStatus === 'lost' && <div className="absolute inset-0 bg-red-900 bg-opacity-70 z-30 flex items-center justify-center text-8xl text-white animate-[fadeIn_0.5s]">СТОЛКНОВЕНИЕ!</div>}
-            <div className="absolute bottom-2 left-2 text-xl z-20">РАУНД {round}/3</div><div className="absolute top-16 right-2 text-xl z-20">→ КИНО →</div>
+            
+            <MinigameHUD>
+                <div className="text-left">РАУНД {round}/3</div>
+                <div className="text-right">→ КИНО →</div>
+            </MinigameHUD>
+
             <div className="absolute top-0 bottom-0 right-0 w-8 bg-[repeating-linear-gradient(45deg,#fff,#fff_10px,#000_10px,#000_20px)] z-10"></div>
             <div className="absolute w-5 h-5 bg-yellow-400 z-20" style={{ left: `${player.x}%`, top: `${player.y}%`, transform: `translate(-50%, -50%)`, boxShadow: '0 0 10px yellow', borderRadius: '50%' }}></div>
             {obstacles.map(o => <div key={o.id} className={`absolute z-10 ${o.isHit ? 'opacity-30' : ''}`} style={{ left: `${o.x}%`, top: `${o.y}%`, transform: 'translate(-50%, -50%)', fontSize: `${o.size}px`, color: o.color || '#fff', textShadow: '2px 2px 2px #000', transition: 'color 0.5s, opacity 0.5s' }}>{o.content}</div>)}
