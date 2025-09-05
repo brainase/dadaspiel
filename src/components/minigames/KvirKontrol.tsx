@@ -5,6 +5,8 @@ import { generateRoundShapes, ALL_COLORS } from './kvir/shapes';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 export const KvirKontrolWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
@@ -56,6 +58,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
     const [status, setStatus] = useState<'playing' | 'won'>('playing');
     const containerRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
+    const [showInstructions, setShowInstructions] = useState(true);
     
     // Состояние для механики Чёрного Игрока
     const [round3Mode, setRound3Mode] = useState<'rotate' | 'color'>('rotate');
@@ -82,7 +85,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
     }, [round]);
     
     useEffect(() => {
-        if(hasFinished.current) return;
+        if(hasFinished.current || showInstructions) return;
         const timer = setTimeout(() => {
             setTimeLeft(t => t - 1);
         }, 1000);
@@ -94,7 +97,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
             }
         }
         return () => clearTimeout(timer);
-    }, [timeLeft, onLose]);
+    }, [timeLeft, onLose, showInstructions]);
     
     // Game loop for Round 3 target movement
     useGameLoop(useCallback((deltaTime) => {
@@ -136,7 +139,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
                 }
             };
         }));
-    }, [status, interaction]), isTargetMovementActive && status === 'playing');
+    }, [status, interaction]), isTargetMovementActive && status === 'playing' && !showInstructions);
     
     // --- Логика Чёрного Игрока ---
     const switchMode = useCallback(() => {
@@ -159,7 +162,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
             ruleChangeTimeout.current = null;
         }
 
-        if (round === 3 && status === 'playing' && character === Character.BLACK_PLAYER) {
+        if (round === 3 && status === 'playing' && character === Character.BLACK_PLAYER && !showInstructions) {
             const initialDuration = 7000 + Math.random() * 2000;
             setRound3Mode('rotate');
             ruleChangeTimeout.current = window.setTimeout(switchMode, initialDuration);
@@ -170,7 +173,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
                 clearTimeout(ruleChangeTimeout.current);
             }
         };
-    }, [round, status, character, switchMode]);
+    }, [round, status, character, switchMode, showInstructions]);
 
     const getPointerPosition = (e: React.MouseEvent | React.TouchEvent) => {
         if (!containerRef.current) return { x: 0, y: 0, clientX: 0, clientY: 0 };
@@ -293,24 +296,8 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
         onWin();
     };
     
-    const getRoundInstructions = () => {
-        switch (round) {
-            case 1:
-                return "Перетащите фигуры. Клик для вращения.";
-            case 2:
-                if (character === Character.BLACK_PLAYER) {
-                    return "Цели движутся! Клик для вращения.";
-                }
-                return "Больше фигур! Клик для вращения.";
-            case 3:
-                if (character === Character.BLACK_PLAYER) {
-                    return `РЕЖИМ: ${round3Mode === 'rotate' ? 'ВРАЩЕНИЕ' : 'ЦВЕТ'}. Клик меняет свойство!`;
-                }
-                return "Цели движутся! Клик для вращения.";
-            default:
-                return "";
-        }
-    }
+    const instruction = instructionData['1-2'];
+    const InstructionContent = instruction.content;
 
     const backgroundStyle = useMemo(() => {
         if (shapes.length === 0) {
@@ -342,7 +329,13 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
         >
             {status === 'won' && <KvirKontrolWinScreen onContinue={handleWinContinue} />}
             
-            {status === 'playing' && <>
+            {showInstructions && (
+                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent character={character} />
+                </InstructionModal>
+            )}
+
+            {status === 'playing' && !showInstructions && <>
                 <style>{`
                     @keyframes instruction-flash {
                         from { transform: scale(1.1); color: white; }
@@ -353,8 +346,9 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
                 <MinigameHUD>
                     <div className="w-full text-center">
                         <h3 className="text-3xl mb-2">А ВЫ КВИР? (Раунд {round}/3)</h3>
-                        <p key={modeChangeEffect} className={`text-sm text-yellow-300 ${round === 3 && character === Character.BLACK_PLAYER ? 'instruction-flash' : ''}`}>
-                            Время: {timeLeft} сек. | {getRoundInstructions()}
+                         <p key={modeChangeEffect} className={`text-sm text-yellow-300 ${round === 3 && character === Character.BLACK_PLAYER ? 'instruction-flash' : ''}`}>
+                            Время: {timeLeft} сек.
+                            {character === Character.BLACK_PLAYER && round === 3 && ` | РЕЖИМ: ${round3Mode === 'rotate' ? 'ВРАЩЕНИЕ' : 'ЦВЕТ'}`}
                         </p>
                     </div>
                 </MinigameHUD>

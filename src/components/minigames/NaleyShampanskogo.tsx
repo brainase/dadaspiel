@@ -6,6 +6,8 @@ import { PIXEL_ART_PALETTE } from '../../../characterArt';
 import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { MinigameHUD } from '../core/MinigameHUD';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 const AnimatedBottle: React.FC<{ anim: string; position: React.CSSProperties; size: string; }> = ({ anim, position, size }) => {
     const splashes = useMemo(() => Array.from({length: 20}).map((_, i) => ({
@@ -213,6 +215,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
     const hoverTimeOverBottle = useRef(0);
 
     // --- Состояние игры ---
+    const [showInstructions, setShowInstructions] = useState(true);
     const [round, setRound] = useState(1);
     const [glassPos, setGlassPos] = useState({ x: 0, y: 0 });
     const [fill, setFill] = useState(0);
@@ -396,7 +399,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             }
             return { ...w, timer: newTimer };
         });
-      }, [glassPos, status, round, roundSettings, onLose, waiter, easterEggStage, killPlayer, playSound]), status === 'playing');
+      }, [glassPos, status, round, roundSettings, onLose, waiter, easterEggStage, killPlayer, playSound]), status === 'playing' && !showInstructions);
 
     useEffect(() => {
         if (fill >= 100) {
@@ -423,6 +426,8 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
         onWin();
     };
 
+    const instruction = instructionData['1-1'];
+    const InstructionContent = instruction.content;
 
     return (
         <div 
@@ -435,7 +440,13 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             <GalleryBackground />
             {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} />}
             
-            {status === 'playing' && <>
+            {showInstructions && (
+                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent />
+                </InstructionModal>
+            )}
+
+            {status === 'playing' && !showInstructions && <>
                 <MinigameHUD>
                     <div className="w-full text-center text-3xl" style={{color: '#333', textShadow: '1px 1px 2px white'}}>
                         РАУНД: {round}/3 | ВРЕМЯ: {Math.ceil(timeLeft)}
@@ -474,7 +485,6 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
                         <Glass fillPercentage={fill} />
                     </div>
                 </div>
-                 <p className="text-center text-sm mt-2 z-20 text-gray-700">Поймай официанта и наполни бокал!</p>
             </>}
         </div>
     );

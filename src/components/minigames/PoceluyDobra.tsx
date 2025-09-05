@@ -6,6 +6,8 @@ import { CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
 import { SoundType } from '../../utils/AudioEngine';
 import { MinigameHUD } from '../core/MinigameHUD';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 interface Kiss {
     id: number;
@@ -111,6 +113,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
     const [particles, setParticles] = useState<Particle[]>([]);
     const [isPlayerHit, setIsPlayerHit] = useState(false);
     const [isDobroHit, setIsDobroHit] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(true);
     
     const hasFinished = useRef(false);
     const kissCounter = useRef(0);
@@ -188,7 +191,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
         // Update particles
         setParticles(p => p.map(particle => ({...particle, x: particle.x + particle.vx * dtSec, y: particle.y + particle.vy * dtSec, life: particle.life - dtSec})).filter(p => p.life > 0));
 
-    }, [status, roundSettings, dobroX, isAdvancingRound, playSound, isSlowMo]), status === 'playing');
+    }, [status, roundSettings, dobroX, isAdvancingRound, playSound, isSlowMo]), status === 'playing' && !showInstructions);
 
     useEffect(() => {
         if (status !== 'playing' || hasFinished.current || isAdvancingRound) return;
@@ -211,7 +214,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
     }, [dobroX, timeLeft, status, round, onLose, isAdvancingRound]);
 
     const handleParry = () => {
-        if (status !== 'playing' || isAdvancingRound) return;
+        if (status !== 'playing' || isAdvancingRound || showInstructions) return;
 
         const parryableKisses = kisses.filter(k => k.x >= PARRY_ZONE_START_X && k.x <= PARRY_ZONE_END_X);
 
@@ -249,6 +252,9 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
 
     const dobroScale = 1 + (80 - dobroX) / 70 * 2.5;
 
+    const instruction = instructionData['5-2'];
+    const InstructionContent = instruction.content;
+
     return (
         <div className="w-full h-full bg-gradient-to-br from-[#d299c2] to-[#fef9d7] flex items-center justify-start p-4 relative overflow-hidden cursor-pointer" onClick={handleParry} onTouchStart={handleParry}>
              <style>{`
@@ -259,46 +265,53 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
             {status === 'won' && <PoceluyDobraWinScreen onContinue={handleWinContinue} />}
             {status === 'lost' && <div className="absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center text-5xl text-red-500"><p>ЗАЦЕЛОВАН</p><p className="text-3xl mt-4">(насмерть)</p></div>}
             
-            <MinigameHUD>
-                <div className="w-full text-center text-rose-800" style={{textShadow: '1px 1px 1px #fff'}}>
-                    <p className="text-xl mb-1">Раунд {round}/3</p>
-                    <div className="w-full h-6 bg-black pixel-border mt-2" title={`Осталось времени: ${Math.ceil(timeLeft)}с`}>
-                        <div className="h-full bg-gradient-to-r from-red-500 to-yellow-400 transition-all duration-100" style={{ width: `${(timeLeft / roundSettings.duration) * 100}%` }}></div>
+            {showInstructions && (
+                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent />
+                </InstructionModal>
+            )}
+
+            {!showInstructions && status === 'playing' && <>
+                <MinigameHUD>
+                    <div className="w-full text-center text-rose-800" style={{textShadow: '1px 1px 1px #fff'}}>
+                        <p className="text-xl mb-1">Раунд {round}/3</p>
+                        <div className="w-full h-6 bg-black pixel-border mt-2" title={`Осталось времени: ${Math.ceil(timeLeft)}с`}>
+                            <div className="h-full bg-gradient-to-r from-red-500 to-yellow-400 transition-all duration-100" style={{ width: `${(timeLeft / roundSettings.duration) * 100}%` }}></div>
+                        </div>
                     </div>
-                    <p className="text-xl mt-2">Парируй поцелуи добра!</p>
+                </MinigameHUD>
+
+                <div className={`absolute z-20 ${isPlayerHit ? 'animate-[hit-shake_0.2s_ease-in-out]' : ''}`} style={{ left: `${PLAYER_X}%`, top: '50%', transform: 'translateY(-50%)' }}>
+                    <div className="w-[80px] h-[128px]"><PixelArt artData={charArt} palette={PIXEL_ART_PALETTE} pixelSize={4} /></div>
                 </div>
-            </MinigameHUD>
+                
+                <div className="absolute top-1/2 -translate-y-1/2 z-10 transition-all duration-100" style={{ left: `${dobroX}%`, transform: `translateX(-50%)` }}>
+                    <PixelDobro scale={dobroScale} isHit={isDobroHit} />
+                </div>
 
-            <div className={`absolute z-20 ${isPlayerHit ? 'animate-[hit-shake_0.2s_ease-in-out]' : ''}`} style={{ left: `${PLAYER_X}%`, top: '50%', transform: 'translateY(-50%)' }}>
-                <div className="w-[80px] h-[128px]"><PixelArt artData={charArt} palette={PIXEL_ART_PALETTE} pixelSize={4} /></div>
-            </div>
-            
-            <div className="absolute top-1/2 -translate-y-1/2 z-10 transition-all duration-100" style={{ left: `${dobroX}%`, transform: `translateX(-50%)` }}>
-                <PixelDobro scale={dobroScale} isHit={isDobroHit} />
-            </div>
+                {/* Parry Zone */}
+                <div 
+                    className="absolute h-48 bg-white/50" 
+                    style={{ 
+                        left: `${PARRY_ZONE_START_X}%`, 
+                        top: '50%', 
+                        transform: 'translateY(-50%)',
+                        width: `${PARRY_ZONE_END_X - PARRY_ZONE_START_X}%`,
+                        animation: isSlowMo ? 'parry-zone-glow 1s ease-in-out infinite' : 'none',
+                        transition: 'box-shadow 0.3s',
+                    }}
+                ></div>
 
-            {/* Parry Zone */}
-            <div 
-                className="absolute h-48 bg-white/50" 
-                style={{ 
-                    left: `${PARRY_ZONE_START_X}%`, 
-                    top: '50%', 
-                    transform: 'translateY(-50%)',
-                    width: `${PARRY_ZONE_END_X - PARRY_ZONE_START_X}%`,
-                    animation: isSlowMo ? 'parry-zone-glow 1s ease-in-out infinite' : 'none',
-                    transition: 'box-shadow 0.3s',
-                }}
-            ></div>
-
-            {/* Kisses */}
-            {kisses.map(kiss => (
-                <div key={kiss.id} className="absolute text-4xl pointer-events-none" style={{ left: `${kiss.x}%`, top: `${kiss.y}%`, transform: 'translate(-50%, -50%)' }}>💋</div>
-            ))}
-            
-            {/* Particles */}
-            {particles.map(p => (
-                 <div key={p.id} className="absolute text-2xl text-red-500 pointer-events-none" style={{ left: `${p.x}%`, top: `${p.y}%` }}>{p.char}</div>
-            ))}
+                {/* Kisses */}
+                {kisses.map(kiss => (
+                    <div key={kiss.id} className="absolute text-4xl pointer-events-none" style={{ left: `${kiss.x}%`, top: `${kiss.y}%`, transform: 'translate(-50%, -50%)' }}>💋</div>
+                ))}
+                
+                {/* Particles */}
+                {particles.map(p => (
+                     <div key={p.id} className="absolute text-2xl text-red-500 pointer-events-none" style={{ left: `${p.x}%`, top: `${p.y}%` }}>{p.char}</div>
+                ))}
+            </>}
         </div>
     );
 };

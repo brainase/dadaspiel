@@ -5,6 +5,8 @@ import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 export const AladkiWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
@@ -43,25 +45,24 @@ export const AladkiWinScreen: React.FC<{ onContinue: () => void }> = ({ onContin
     return (
         <div className="absolute inset-0 bg-gray-800 bg-opacity-90 z-30 flex flex-col items-center justify-center animate-[fadeIn_1s]">
             <h2 className="text-3xl text-yellow-300 mb-8">ДЕЛО СДЕЛАНО!</h2>
-            
             <div style={dishStyle}>
-                 <div style={{ ...aladkaStyle, top: '20px', left: '30px', zIndex: 1 }}></div>
-                 <div style={{ ...aladkaStyle, top: '35px', left: '70px', zIndex: 2, transform: 'scale(0.9)' }}></div>
-                 <div style={{ ...aladkaStyle, top: '15px', left: '55px', zIndex: 0, transform: 'scale(1.1)' }}></div>
-                 <div style={sauceStyle}></div>
+                <div style={sauceStyle}></div>
+                <div style={{ ...aladkaStyle, top: '25%', left: '15%' }}></div>
+                <div style={{ ...aladkaStyle, top: '40%', left: '45%' }}></div>
+                <div style={{ ...aladkaStyle, top: '15%', left: '35%' }}></div>
             </div>
-
-            <p className="mt-8 text-2xl">"Аладки с соусом из Ничто"</p>
-             <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">
+            <p className="mt-4 text-xl">Приятного Дада-ппетита!</p>
+            <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">
                 ПРОХОДИМ
             </button>
         </div>
     );
 };
 
-export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => void; }> = ({ onWin, onLose }) => {
+// Main game component
+export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { playSound } = useSettings();
-    const { handleMistake, character } = useSession();
+    const { character } = useSession();
     const gameAreaRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
     const itemCounter = useRef(0);
@@ -79,118 +80,101 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
     }, [character]);
 
     const [round, setRound] = useState(0);
-    const [status, setStatus] = useState<'playing'|'won'|'lost'>('playing');
+    const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
     const [panX, setPanX] = useState(50);
     const [items, setItems] = useState<any[]>([]);
-    const [collected, setCollected] = useState<{[key: string]: number}>({});
+    const [collected, setCollected] = useState<{ [key: string]: number }>({});
     const [mistakes, setMistakes] = useState(0);
     const [isAdvancing, setIsAdvancing] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(true);
+    const [feedback, setFeedback] = useState<any[]>([]);
 
-    const currentRecipeData = ALADKI_RECIPES[round];
-    
-    // Setup round
+    const currentRecipe = ALADKI_RECIPES[round];
+
+    // Reset state for new round
     useEffect(() => {
-        if(status !== 'playing' || round >= ALADKI_RECIPES.length) return;
         setCollected({});
         setMistakes(0);
         setItems([]);
         itemCounter.current = 0;
         setIsAdvancing(false);
-    }, [round, status]);
-    
+    }, [round]);
+
     useGameLoop(useCallback((deltaTime) => {
-        if (hasFinished.current || status !== 'playing') return;
-        
-        // Spawn new items
-        if (Math.random() < 0.04) {
-            const pool = [...currentRecipeData.ingredients, ...currentRecipeData.decoys];
-            const text = pool[Math.floor(Math.random() * pool.length)];
-            const isGood = currentRecipeData.ingredients.includes(text);
-            
+        if (hasFinished.current || status !== 'playing' || isAdvancing) return;
+
+        // Spawn new ingredients
+        if (Math.random() < 0.1) {
+            const isTarget = Math.random() > 0.35;
+            const ingredientPool = isTarget ? currentRecipe.ingredients : currentRecipe.decoys;
+            const text = ingredientPool[Math.floor(Math.random() * ingredientPool.length)];
             setItems(prev => [...prev, {
                 id: itemCounter.current++,
                 text,
-                isGood,
+                isTarget: currentRecipe.ingredients.includes(text),
                 x: 10 + Math.random() * 80,
                 y: -5,
-                vx: (Math.random() - 0.5) * 6,
-                rot: Math.random() * 90 - 45
+                rot: (Math.random() - 0.5) * 90
             }]);
         }
-        
-        // Move items and check for collisions
+
+        // Move items and check for collision
         setItems(prevItems => {
             const newItems = [];
             for (const item of prevItems) {
                 const newY = item.y + settings.fallSpeed * (deltaTime / 1000);
-                let newVx = item.vx;
-                let newX = item.x + newVx * (deltaTime / 1000);
-
-                if (newX < 5 || newX > 95) {
-                    newVx *= -1;
-                    newX = Math.max(5, Math.min(95, newX));
-                }
-
-                if (newY > 105) continue; // Despawn
+                if (newY > 105) continue; // Remove if off-screen
 
                 let hit = false;
-                if (newY > 85 && newY < 95 && item.x > panX - 12 && item.x < panX + 12) {
-                   hit = true;
-                   
-                   const currentCount = collected[item.text] || 0;
-                   const neededCount = currentRecipeData.recipe[item.text] || 0;
+                if (newY > 85 && newY < 95 && item.x > panX - 10 && item.x < panX + 10) {
+                    hit = true;
+                    const newCount = (collected[item.text] || 0) + 1;
+                    const recipeAmount = currentRecipe.recipe[item.text] || 0;
 
-                   if (item.isGood && currentCount < neededCount) {
-                       playSound(SoundType.PLOP);
-                       setCollected(c => ({...c, [item.text]: (c[item.text] || 0) + 1}));
-                   } else {
-                        // If mistake was not forgiven by an ability, apply penalty
-                        if (!handleMistake()) {
-                           playSound(SoundType.ITEM_CATCH_BAD);
-                           setMistakes(m => m + 1);
-                        }
-                   }
+                    if (item.isTarget && newCount <= recipeAmount) {
+                        playSound(SoundType.ITEM_CATCH_GOOD);
+                        setCollected(c => ({ ...c, [item.text]: newCount }));
+                        setFeedback(f => [...f, { id: Date.now(), text: `+1 ${item.text}`, x: item.x, y: item.y, color: 'text-green-400' }]);
+                    } else {
+                        playSound(SoundType.ITEM_CATCH_BAD);
+                        setMistakes(m => m + 1);
+                        setFeedback(f => [...f, { id: Date.now(), text: 'ОШИБКА!', x: item.x, y: item.y, color: 'text-red-500' }]);
+                    }
                 }
-                
-                if (!hit) {
-                    newItems.push({ ...item, y: newY, x: newX, vx: newVx });
-                }
+                if (!hit) newItems.push({ ...item, y: newY });
             }
             return newItems;
         });
 
-    }, [panX, collected, status, currentRecipeData, playSound, handleMistake, settings.fallSpeed]), status === 'playing');
+        // Update feedback lifetime
+        setFeedback(f => f.slice(-5)); // Keep only last 5 feedbacks
+    }, [panX, status, currentRecipe, collected, isAdvancing, playSound, settings.fallSpeed]), status === 'playing' && !showInstructions);
 
-    // Win/Lose logic
+    // Check win/loss conditions
     useEffect(() => {
-        if(status !== 'playing' || isAdvancing) return;
+        if (status !== 'playing' || isAdvancing) return;
 
         if (mistakes >= settings.mistakesLimit) {
             if (hasFinished.current) return;
             hasFinished.current = true;
             setStatus('lost');
             setTimeout(onLose, 2000);
-            return;
+        } else {
+            const recipeComplete = Object.entries(currentRecipe.recipe).every(([ing, amount]) => (collected[ing] || 0) >= (amount as number));
+            if (recipeComplete) {
+                setIsAdvancing(true);
+                setTimeout(() => {
+                    if (round < ALADKI_RECIPES.length - 1) {
+                        setRound(r => r + 1);
+                    } else {
+                        if (hasFinished.current) return;
+                        hasFinished.current = true;
+                        setStatus('won');
+                    }
+                }, 1000);
+            }
         }
-
-        const recipeComplete = Object.entries(currentRecipeData.recipe).every(
-            ([name, count]) => (collected[name] || 0) >= count
-        );
-
-        if (recipeComplete) {
-            setIsAdvancing(true);
-            setTimeout(() => {
-                if (round < ALADKI_RECIPES.length - 1) {
-                    setRound(r => r + 1);
-                } else {
-                    if (hasFinished.current) return;
-                    hasFinished.current = true;
-                    setStatus('won');
-                }
-            }, 1000);
-        }
-
-    }, [collected, mistakes, round, onWin, onLose, status, currentRecipeData, isAdvancing, settings]);
+    }, [collected, mistakes, round, onLose, onWin, status, currentRecipe, isAdvancing, settings]);
 
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (gameAreaRef.current) {
@@ -201,63 +185,58 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
             setPanX(x);
         }
     };
-
-    const renderRecipe = () => (
-        <div className="flex flex-col text-left">
-            {Object.entries(currentRecipeData.recipe).map(([name, count]) => {
-                const currentCount = collected[name] || 0;
-                const isDone = currentCount >= count;
-                return (
-                    <div key={name} className={`transition-colors ${isDone ? 'text-green-400 line-through' : 'text-white'}`}>
-                       {name}: {currentCount}/{count}
-                    </div>
-                );
-            })}
-        </div>
-    );
-
-    const handleWinContinue = () => {
-        playSound(SoundType.BUTTON_CLICK);
-        onWin();
-    };
+    
+    const instruction = instructionData['5-1'];
+    const InstructionContent = instruction.content;
 
     return (
         <div 
             ref={gameAreaRef} 
             onMouseMove={handlePointerMove} 
-            onTouchMove={handlePointerMove}
+            onTouchMove={handlePointerMove} 
             onTouchStart={handlePointerMove}
-            className="w-full h-full bg-gradient-to-b from-amber-800 to-stone-900 flex flex-col items-center p-4 relative overflow-hidden cursor-none"
+            className="w-full h-full bg-gradient-to-b from-amber-200 to-orange-400 flex flex-col items-center p-4 relative overflow-hidden cursor-none"
         >
-            {status === 'won' && <AladkiWinScreen onContinue={handleWinContinue} />}
-            {status === 'lost' && (
-                <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center text-5xl">
-                    РЕЦЕПТ ИСПОРЧЕН!
-                </div>
-            )}
-            <MinigameHUD>
-                <div className="text-left">
-                    <h3 className="text-xl text-yellow-300 mb-2">Раунд {round + 1}: {currentRecipeData.name}</h3>
-                    {renderRecipe()}
-                </div>
-                <div className="text-red-500 text-lg">
-                    Ошибки: {'X '.repeat(mistakes)} / {'X '.repeat(settings.mistakesLimit)}
-                </div>
-            </MinigameHUD>
+            {status === 'won' && <AladkiWinScreen onContinue={onWin} />}
+            {status === 'lost' && <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center text-5xl">АЛАДКИ ПОДГОРЕЛИ!</div>}
 
-            {/* Game Area */}
-            <div className="absolute inset-0">
-                 {items.map(item => (
-                    <div key={item.id} className="absolute text-lg text-white" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rot}deg)`, textShadow: '2px 2px #000' }}>
-                        {item.text}
+            {showInstructions ? (
+                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent />
+                </InstructionModal>
+            ) : status === 'playing' && (
+                <>
+                    <MinigameHUD>
+                        <div className="w-1/2 text-left text-black">
+                            <h3 className="text-xl font-bold mb-1">{currentRecipe.name} (Раунд {round+1}/{ALADKI_RECIPES.length})</h3>
+                            <ul className="text-base">
+                                {Object.entries(currentRecipe.recipe).map(([ing, amount]) => (
+                                    <li key={ing} className={(collected[ing] || 0) >= (amount as number) ? 'line-through text-gray-700' : ''}>
+                                        {ing}: {(collected[ing] || 0)}/{amount as number}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="w-1/2 text-right text-black">
+                            Ошибки: {mistakes}/{settings.mistakesLimit}
+                        </div>
+                    </MinigameHUD>
+                    <div className="absolute inset-0">
+                        {items.map(item => (
+                            <div key={item.id} className="absolute p-2 bg-white pixel-border text-black" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%) rotate(${item.rot}deg)` }}>
+                                {item.text}
+                            </div>
+                        ))}
+                        {feedback.map(f => (
+                            <div key={f.id} className={`absolute font-bold text-2xl ${f.color}`} style={{ left: `${f.x}%`, top: `${f.y}%`, animation: 'float-up-and-fade 1s forwards' }}>{f.text}</div>
+                        ))}
+                        {/* Frying Pan */}
+                        <div className="absolute bottom-[5%] w-32 h-8 bg-gray-800 rounded-md" style={{ left: `${panX}%`, transform: 'translateX(-50%)' }}>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 w-4 h-12 bg-gray-600"></div>
+                        </div>
                     </div>
-                 ))}
-                 <div className="absolute bottom-[5%] left-0 w-full flex justify-center" style={{ transform: `translateX(${panX - 50}%)`}}>
-                    <div className="w-48 h-12 bg-gray-700 pixel-border border-t-0 rounded-b-lg flex items-center justify-center text-4xl" style={{boxShadow: 'inset 0 4px 8px rgba(0,0,0,0.5)'}}>
-                        🍳
-                    </div>
-                 </div>
-            </div>
+                </>
+            )}
         </div>
     );
 };

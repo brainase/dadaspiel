@@ -5,6 +5,8 @@ import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 export const SoberiFeminitivWinScreen: React.FC<{ onContinue: () => void; finalWord: string }> = ({ onContinue, finalWord }) => {
     const { playSound } = useSettings();
@@ -66,12 +68,13 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
     const [timeLeft, setTimeLeft] = useState(settings.time);
     const [draggedLetter, setDraggedLetter] = useState<{ id: number; offset: { x: number; y: number } } | null>(null);
     const [status, setStatus] = useState<'playing' | 'won'>('playing');
+    const [showInstructions, setShowInstructions] = useState(true);
     const containerRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
 
     // Настройка нового раунда.
     useEffect(() => {
-        if (hasFinished.current) return;
+        if (hasFinished.current || showInstructions) return;
         // Если все раунды пройдены, победа.
         if (round >= gameWords.length) {
             hasFinished.current = true;
@@ -90,7 +93,7 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
             vel: { x: ((Math.random() - 0.5) * 4) * settings.letterSpeedMultiplier, y: ((Math.random() - 0.5) * 4) * settings.letterSpeedMultiplier },
             isPlaced: false, jiggleKey: 0,
         })));
-    }, [round, gameWords, settings]);
+    }, [round, gameWords, settings, showInstructions]);
 
     // Основной игровой цикл.
     useGameLoop(useCallback((deltaTime) => {
@@ -119,7 +122,7 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
             if (newY < 2 || newY > 48) { newVelY *= -1; newY = Math.max(2, Math.min(48, newY)); }
             return { ...letter, pos: { x: newX, y: newY }, vel: { x: newVelX, y: newVelY } };
         }));
-    }, [draggedLetter, onLose, status]), status === 'playing');
+    }, [draggedLetter, onLose, status]), status === 'playing' && !showInstructions);
 
     // Начало перетаскивания.
     const handlePointerDown = (e: React.MouseEvent | React.TouchEvent, id: number) => {
@@ -182,6 +185,9 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
         onWin();
     };
 
+    const instruction = instructionData['4-1'];
+    const InstructionContent = instruction.content;
+
     return (
         <div 
             ref={containerRef} 
@@ -194,7 +200,13 @@ export const SoberiFeminitiv: React.FC<{ onWin: () => void; onLose: () => void }
         >
             {status === 'won' && <SoberiFeminitivWinScreen onContinue={handleWinContinue} finalWord={gameWords[gameWords.length - 1]} />}
             
-            {status === 'playing' && <>
+            {showInstructions && (
+                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent />
+                </InstructionModal>
+            )}
+
+            {status === 'playing' && !showInstructions && <>
                 <style>{`
                     @keyframes jiggle { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2) rotate(-5deg); } }
                     .jiggle-it { animation: jiggle 0.3s ease-in-out; }

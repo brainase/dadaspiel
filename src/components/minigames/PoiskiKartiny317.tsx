@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { distractorWords } from '../../data/wordData';
 import { useSettings } from '../../context/GameContext';
@@ -6,6 +5,8 @@ import { SoundType } from '../../utils/AudioEngine';
 import { PixelArt } from '../core/PixelArt';
 import { UNDERPANTS_ART_DATA } from '../../miscArt';
 import { PIXEL_ART_PALETTE } from '../../../characterArt';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 // --- Dada Animation (from old PoiskiKartiny317) ---
 const DadaWinAnimation = () => {
@@ -199,6 +200,7 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
     
     type GamePhase = 'findNumber' | 'interactPainting' | 'tearPage' | 'flipping' | 'won';
     const [phase, setPhase] = useState<GamePhase>('findNumber');
+    const [showInstructions, setShowInstructions] = useState(true);
     
     const [paintingWords, setPaintingWords] = useState<any[]>([]);
     const [showUnderpants, setShowUnderpants] = useState(true);
@@ -303,7 +305,6 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
                 setTimeout(() => setIsPageFlipped(true), 100);
                 setTimeout(() => {
                     setIsFlipFinished(true);
-                    // playSound(SoundType.ART_REVEAL); This sound is now played by the WinScreen itself
                 }, 1600);
             }, 500);
         }
@@ -328,35 +329,49 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
     }
 
     const PaintingComponent = useMemo(() => (
-        <div className="w-3/4 h-5/6 bg-gradient-to-br from-yellow-400 to-amber-600 p-4 rounded-lg shadow-2xl border-4 border-yellow-700">
-            <div className="w-full h-full bg-red-900 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] relative flex flex-col items-center justify-center p-4 overflow-hidden">
-                {paintingWords.map(word => (
-                    <span 
-                        key={word.id} 
-                        className={`absolute p-1 text-white ${phase === 'interactPainting' ? 'cursor-pointer hover:text-yellow-300' : 'pointer-events-none'}`} 
-                        style={word.style as React.CSSProperties} 
-                        onClick={(e) => handleWordInteract(e, word)}
-                        onTouchStart={(e) => handleWordInteract(e, word)}
-                    >
-                        {word.text}
-                    </span>
-                ))}
-                
-                <div className="w-56 h-72 bg-amber-800 rounded-lg shadow-inner-lg flex items-center justify-center relative border-4 border-amber-900">
-                    <div
-                        onClick={phase === 'tearPage' ? handleTear : undefined}
-                        onTouchStart={phase === 'tearPage' ? handleTear : undefined}
-                        className={`w-48 h-64 bg-stone-200 shadow-lg transform-origin-top-left ${phase === 'tearPage' ? `cursor-pointer ${getTearClass()}`: ''}`}
-                    >
-                       {tearState < 5 && pageContent}
-                    </div>
+        <div className="w-full h-full relative flex flex-col items-center">
+            <div className="w-full h-full bg-gradient-to-br from-yellow-400 to-amber-600 p-4 rounded-lg shadow-2xl border-4 border-yellow-700">
+                <div className="w-full h-full bg-red-900 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] relative flex flex-col items-center justify-center p-4 overflow-hidden">
+                    {paintingWords.map(word => (
+                        <span 
+                            key={word.id} 
+                            className={`absolute p-1 text-white ${phase === 'interactPainting' ? 'cursor-pointer hover:text-yellow-300' : 'pointer-events-none'}`} 
+                            style={word.style as React.CSSProperties} 
+                            onClick={(e) => handleWordInteract(e, word)}
+                            onTouchStart={(e) => handleWordInteract(e, word)}
+                        >
+                            {word.text}
+                        </span>
+                    ))}
+                    
+                    <div className="w-56 h-72 bg-amber-800 rounded-lg shadow-inner-lg flex items-center justify-center relative border-4 border-amber-900">
+                        <div
+                            onClick={phase === 'tearPage' ? handleTear : undefined}
+                            onTouchStart={phase === 'tearPage' ? handleTear : undefined}
+                            className={`w-48 h-64 bg-stone-200 shadow-lg transform-origin-top-left ${phase === 'tearPage' ? `cursor-pointer ${getTearClass()}`: ''}`}
+                        >
+                           {tearState < 5 && pageContent}
+                        </div>
 
-                    {showUnderpants && (
-                       <div id="underpants" className="absolute top-1/2 left-1/2 -translate-x-1/2" style={{transformOrigin: 'bottom center'}}>
-                           <PixelArt artData={UNDERPANTS_ART_DATA} palette={PIXEL_ART_PALETTE} pixelSize={6} />
-                       </div>
-                    )}
+                        {showUnderpants && (
+                           <div id="underpants" className="absolute top-1/2 left-1/2 -translate-x-1/2" style={{transformOrigin: 'bottom center'}}>
+                               <PixelArt artData={UNDERPANTS_ART_DATA} palette={PIXEL_ART_PALETTE} pixelSize={6} />
+                           </div>
+                        )}
+                    </div>
                 </div>
+            </div>
+             {/* Caption below */}
+            <div 
+                    className="mt-2 px-3 py-1 bg-stone-800 border-2 border-stone-600 shadow-lg whitespace-nowrap"
+                    style={{
+                            fontFamily: `'Times New Roman', serif`,
+                            transform: 'rotate(-1deg)',
+                    }}
+            >
+                    <p className="text-sm text-stone-300" style={{ textShadow: '1px 1px 1px #000' }}>
+                            "Картина №317: ДАДАисты срывают оковы приличия"
+                    </p>
             </div>
         </div>
     ), [phase, paintingWords, showUnderpants, tearState, getTearClass, handleDadaClick, handleWordClick, handleTear, pageContent]);
@@ -365,6 +380,9 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
         playSound(SoundType.BUTTON_CLICK);
         onWin();
     };
+    
+    const instruction = instructionData['1-3'];
+    const InstructionContent = instruction.content;
 
     return (
         <div className="w-full h-full flex flex-col relative bg-stone-400">
@@ -414,31 +432,35 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
                 }
             `}</style>
 
-            <div className="p-2 bg-black text-center text-lg mt-16 text-white z-20">
-                {phase === 'findNumber' ? "Найдите картину №317." : phase === 'flipping' || isFlipFinished ? "Освобожденное Искусство" : "Картина №317: ДАДАисты срывают оковы приличия"}
-            </div>
-
-            <div className="flex-grow relative flex items-center justify-center p-8">
-                {phase === 'findNumber' && <FindTheNumber onFound={handleNumberFound} />}
-                {(phase === 'interactPainting' || phase === 'tearPage') && PaintingComponent}
-                {phase === 'flipping' && !isFlipFinished && (
-                    <div className="flipping-container">
-                         <div className={`flipping-page ${isPageFlipped ? 'is-flipped' : ''}`}>
-                            <div className="page-side page-front">
-                                <div className="w-48 h-64 bg-stone-200 shadow-lg flex items-center justify-center">
-                                    {pageContent}
-                                </div>
-                            </div>
-                            <div className="page-side page-back">
-                                 {/* Ticket removed from here to fix double appearance */}
-                            </div>
-                        </div>
-                    </div>
-                )}
-                 {isFlipFinished && (
-                    <ArtRevealWinScreen pisyunImage={pisyunImage} onContinue={handleWinContinue} />
-                 )}
-            </div>
+            {showInstructions && (
+                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent />
+                </InstructionModal>
+            )}
+						
+            {!showInstructions && (
+							<div className="flex-grow relative flex items-center justify-center p-8">
+									{phase === 'findNumber' && <FindTheNumber onFound={handleNumberFound} />}
+									{(phase === 'interactPainting' || phase === 'tearPage') && PaintingComponent}
+									{phase === 'flipping' && !isFlipFinished && (
+											<div className="flipping-container">
+													 <div className={`flipping-page ${isPageFlipped ? 'is-flipped' : ''}`}>
+															<div className="page-side page-front">
+																	<div className="w-48 h-64 bg-stone-200 shadow-lg flex items-center justify-center">
+																			{pageContent}
+																	</div>
+															</div>
+															<div className="page-side page-back">
+																 <ArtTicket pisyunImage={pisyunImage} />
+															</div>
+													</div>
+											</div>
+									)}
+									 {isFlipFinished && (
+											<ArtRevealWinScreen pisyunImage={pisyunImage} onContinue={handleWinContinue} />
+									 )}
+							</div>
+						)}
             
             {showDadaAnimation && <DadaWinAnimation />}
         </div>

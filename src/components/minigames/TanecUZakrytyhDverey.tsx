@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { PixelArt } from '../core/PixelArt';
 import { GUARD_ART_DATA, MINI_GUARD_ART } from '../../miscArt';
@@ -8,6 +7,8 @@ import { SoundType } from '../../utils/AudioEngine';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
 import { GenericWinScreen } from '../core/GenericWinScreen';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 // Interfaces and Constants
 interface Icon {
@@ -72,25 +73,6 @@ const CharacterDisplay = ({ artData, pose, isHit, isDancing, isPlayer }: { artDa
     );
 };
 
-const GameInstructions: React.FC<{ onStart: () => void }> = ({ onStart }) => (
-    <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 text-center text-white p-4">
-        <h2 className="text-3xl mb-4 text-yellow-300">ПРАВИЛА ТАНЦ-БАТТЛА</h2>
-        <div className="text-left max-w-lg space-y-3 text-base">
-            <p><strong>Цель:</strong> Затанцевать вахтёршу, чтобы она сдалась.</p>
-            <p className="text-blue-300"><strong>Фаза игрока (ВАШ ХОД):</strong><br/>
-            - Кликай по своим иконкам, чтобы набрать очки.<br/>
-            - Ошибочный клик по иконке вахтёрши даёт очки ей.</p>
-            <p className="text-red-300"><strong>Фаза вахтёрши (ХОД ВАХТЁРШИ):</strong><br/>
-            - Мешай ей! Кликай по её иконкам, чтобы набрать очки.<br/>
-            - Ошибочный клик по своей иконке даёт очки ей.</p>
-            <p><strong>Бустеры</strong> (✨, 🚨) удваивают очки.</p>
-            <p>У кого больше очков в конце, тот и победил.</p>
-        </div>
-        <button onClick={onStart} className="pixel-button p-4 text-2xl mt-6">НАЧАТЬ ТАНЕЦ</button>
-    </div>
-);
-
-
 // Main Component
 export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => void; }> = ({ onWin, onLose }) => {
     const { character } = useSession();
@@ -109,6 +91,7 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
     }, [character]);
 
     // State
+    const [showInstructions, setShowInstructions] = useState(true);
     const [phase, setPhase] = useState<'intro' | 'player' | 'guard' | 'end'>('intro');
     const [round, setRound] = useState(0); // 0 is intro, 1-4 are game rounds
     const [playerScore, setPlayerScore] = useState(0);
@@ -220,7 +203,7 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
         setIcons(prev => prev.map(i => ({...i, life: i.life - dtSec})).filter(i => i.life > 0));
         setFeedback(prev => prev.map(f => ({...f, life: f.life - dtSec, y: f.y - 10 * dtSec})).filter(f => f.life > 0));
 
-    }, [phase, status, round, settings.iconLife]), status === 'playing');
+    }, [phase, status, round, settings.iconLife]), status === 'playing' && !showInstructions);
 
     const handleIconClick = (clickedIcon: Icon) => {
         if (phase === 'intro' || phase === 'end') return;
@@ -331,12 +314,22 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
         return null;
     }
 
+    const handleStart = () => {
+        setShowInstructions(false);
+        setRound(1);
+    }
+    
+    const instruction = instructionData['2-1'];
+    const InstructionContent = instruction.content;
+
     return (
         <div className="w-full h-full relative overflow-hidden">
             <MuseumBackground />
             
-            {phase === 'intro' ? (
-                <GameInstructions onStart={() => setRound(1)} />
+            {showInstructions ? (
+                <InstructionModal title={instruction.title} onStart={handleStart}>
+                    <InstructionContent />
+                </InstructionModal>
             ) : (
                 renderGame()
             )}

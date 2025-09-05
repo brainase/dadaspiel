@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSession, useSettings } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
@@ -6,6 +5,8 @@ import { Character } from '../../../types';
 import { CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
 import { SoundType, updateMusicParameter } from '../../utils/AudioEngine';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 // Компонент пиксельного пылесоса
 const PixelVacuum: React.FC<{animationToggle: boolean}> = ({ animationToggle }) => {
@@ -85,6 +86,7 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
     const [vacuumX, setVacuumX] = useState(50); // Позиция пылесоса по X
     const [status, setStatus] = useState<'playing'|'won'|'lost'>('playing');
     const [scrollOffset, setScrollOffset] = useState(0); // Для скроллинга фона
+    const [showInstructions, setShowInstructions] = useState(true);
 
     // --- Ссылки ---
     const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -177,7 +179,7 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
             return updated;
         });
 
-    }, [status, timeLeft, playerX, obstacleTypes, onLose, settings]), status === 'playing');
+    }, [status, timeLeft, playerX, obstacleTypes, onLose, settings]), status === 'playing' && !showInstructions);
 
     // --- Управление игроком ---
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
@@ -200,6 +202,9 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
         onWin();
     };
     
+    const instruction = instructionData['6-3'];
+    const InstructionContent = instruction.content;
+
     return (
         <div 
             ref={gameAreaRef} 
@@ -214,7 +219,13 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
             {status === 'lost' && <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center text-7xl text-red-500 animate-ping">ЗАСОСАЛО</div>}
             {status === 'won' && <ZasosPylesosaWinScreen onContinue={handleWinContinue} charArt={charArt} />}
 
-            {status === 'playing' && <>
+             {showInstructions && (
+                 <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent />
+                </InstructionModal>
+            )}
+
+            {status === 'playing' && !showInstructions && <>
                 <div className="absolute top-16 text-3xl z-40 text-white">УБЕГАЙ: {Math.ceil(timeLeft)}</div>
 
                 {/* Игрок */}

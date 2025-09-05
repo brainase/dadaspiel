@@ -4,6 +4,8 @@ import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
+import { InstructionModal } from '../core/InstructionModal';
+import { instructionData } from '../../data/instructionData';
 
 // Компонент, отображаемый при победе.
 export const FruktoviySporWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
@@ -62,8 +64,7 @@ export const FruktoviySpor: React.FC<{ onWin: () => void; onLose: () => void; is
     const [score, setScore] = useState(0);
     const [mistakes, setMistakes] = useState(0);
     const [isAdvancing, setIsAdvancing] = useState(false);
-    // Состояние для экрана предпросмотра, чтобы игрок знал, что ловить.
-    const [isPreviewing, setIsPreviewing] = useState(true);
+    const [showInstructions, setShowInstructions] = useState(true);
 
     const currentRound = roundData[round];
     
@@ -74,12 +75,8 @@ export const FruktoviySpor: React.FC<{ onWin: () => void; onLose: () => void; is
         setItems([]);
         itemCounter.current = 0;
         setIsAdvancing(false);
-        setIsPreviewing(true); // Включаем предпросмотр.
-
-        const timer = setTimeout(() => {
-            setIsPreviewing(false); // Выключаем предпросмотр через 3 секунды.
-        }, 3000);
-        return () => clearTimeout(timer);
+        // Show instructions for every new round.
+        setShowInstructions(true);
     }, [round]);
     
     // Основной игровой цикл.
@@ -126,7 +123,7 @@ export const FruktoviySpor: React.FC<{ onWin: () => void; onLose: () => void; is
             }
             return newItems;
         });
-    }, [basketX, status, currentRound, isAdvancing, playSound, isMinigameInverted, handleMistake, settings.fallSpeed]), status === 'playing' && !isPreviewing); // Цикл работает только когда игра идет и предпросмотр выключен.
+    }, [basketX, status, currentRound, isAdvancing, playSound, isMinigameInverted, handleMistake, settings.fallSpeed]), status === 'playing' && !showInstructions);
 
     // Проверка условий победы/поражения.
     useEffect(() => {
@@ -173,7 +170,8 @@ export const FruktoviySpor: React.FC<{ onWin: () => void; onLose: () => void; is
         onWin();
     };
     
-    const previewData = isMinigameInverted ? currentRound.decoys[0] : currentRound;
+    const instruction = instructionData['6-1'];
+    const InstructionContent = instruction.content;
     const instructionText = isMinigameInverted ? `ИЗБЕГАЙ "${currentRound.name}"` : `Поймай "${currentRound.name}"`
 
     return (
@@ -187,16 +185,13 @@ export const FruktoviySpor: React.FC<{ onWin: () => void; onLose: () => void; is
             {status === 'won' && <FruktoviySporWinScreen onContinue={handleWinContinue} />}
             {status === 'lost' && <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center text-5xl">СПОР ПРОИГРАН!</div>}
             
-            {/* Экран предпросмотра */}
-            { isPreviewing && (
-                 <div className="absolute inset-0 z-30 bg-black/70 flex flex-col items-center justify-center">
-                    <h3 className="text-3xl mb-8 text-white">{isMinigameInverted ? "Запомни, чего ИЗБЕГАТЬ:" : "Запомни этот фрукт:"}</h3>
-                    <div className="animate-pulse"><Fruit data={previewData} isPreview={true} /></div>
-                </div>
+            {showInstructions && (
+                 <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
+                    <InstructionContent isMinigameInverted={isMinigameInverted} currentRound={currentRound} round={round} />
+                </InstructionModal>
             )}
 
-            {/* Основной игровой интерфейс */}
-            {!isPreviewing && (
+            {!showInstructions && status === 'playing' && (
                 <>
                     <MinigameHUD>
                         <h3 className="w-1/2 text-left">Раунд {round+1}/3: {instructionText}</h3>
