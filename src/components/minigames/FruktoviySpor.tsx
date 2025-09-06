@@ -113,6 +113,11 @@ export const BlackPlayerBecomingWinScreen: React.FC<{ onContinue: () => void, on
                     50% { filter: drop-shadow(0 0 15px #ff0000) brightness(1.5); }
                 }
                 .visor-pulse { animation: visor-pulse 2s ease-in-out infinite; }
+                /* Анимация появления */
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
             `}</style>
             <div 
                 className="visor-pulse cursor-pointer transition-transform hover:scale-105"
