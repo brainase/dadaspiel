@@ -6,7 +6,6 @@ import { useSession, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
-import { GenericWinScreen } from '../core/GenericWinScreen';
 import { InstructionModal } from '../core/InstructionModal';
 import { instructionData } from '../../data/instructionData';
 
@@ -27,6 +26,89 @@ interface Feedback {
   life: number;
   color: string;
 }
+
+const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+    const getEmbedUrl = (videoUrl: string): string => {
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+            return videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+        }
+        if (videoUrl.includes("vkvideo.ru/video-")) {
+            const parts = videoUrl.split('video-')[1]?.split('_');
+            if (parts && parts.length === 2) {
+                const oid = `-${parts[0]}`;
+                const id = parts[1];
+                return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`;
+            }
+        }
+        return videoUrl;
+    };
+    const embedUrl = getEmbedUrl(url);
+
+    return (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={onClose}>
+            <div className="relative w-11/12 max-w-4xl aspect-video bg-black pixel-border" onClick={(e) => e.stopPropagation()}>
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={embedUrl}
+                    title="Video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                <button onClick={onClose} className="absolute -top-4 -right-4 pixel-button bg-red-600 text-2xl w-12 h-12 flex items-center justify-center z-10" aria-label="Закрыть видео">X</button>
+            </div>
+        </div>
+    );
+};
+
+export const TanecUZakrytyhDvereyWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void }> = ({ onContinue, onPlayVideo }) => {
+    const { playSound } = useSettings();
+    useEffect(() => {
+        playSound(SoundType.WIN_TANEC);
+    }, [playSound]);
+
+    const notes = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
+        id: i,
+        char: ['♪', '♫', '♬'][i % 3],
+        style: {
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animation: `float-note ${3 + Math.random() * 4}s ease-in-out infinite`,
+            animationDelay: `${Math.random() * 3}s`,
+            fontSize: `${1.5 + Math.random() * 2}rem`,
+            color: ['#ff8ad8', '#0077be', '#fde047'][i % 3],
+        } as React.CSSProperties
+    })), []);
+
+    return (
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 overflow-hidden">
+            <style>{`
+                @keyframes float-note {
+                    0%, 100% { transform: translateY(0) rotate(0deg); }
+                    50% { transform: translateY(-20px) rotate(15deg); }
+                }
+                @keyframes spotlight-sweep {
+                    0% { background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, white 5deg, transparent 10deg); }
+                    100% { background: conic-gradient(from 360deg at 50% 50%, transparent 0deg, white 5deg, transparent 10deg); }
+                }
+                .spotlight {
+                    position: absolute;
+                    inset: -50%;
+                    animation: spotlight-sweep 5s linear infinite;
+                    opacity: 0.2;
+                }
+            `}</style>
+            <div className="spotlight"></div>
+            {notes.map(note => <div key={note.id} className="absolute" style={note.style}>{note.char}</div>)}
+            <div className="text-center z-10">
+                <h2 className="text-5xl text-white mb-4" style={{textShadow: "3px 3px 0px #000"}}>ТАНЕЦ — ЭТО ЖИЗНЬ!</h2>
+                <button onClick={onPlayVideo} className="pixel-button p-3 text-2xl bg-yellow-500 text-black hover:bg-yellow-400">СМОТРЕТЬ ТАНЕЦ</button>
+            </div>
+            <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">ПРОХОДИМ</button>
+        </div>
+    );
+};
 
 // Sub-components
 const MuseumBackground = () => (
@@ -100,6 +182,7 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
     const [feedback, setFeedback] = useState<Feedback[]>([]);
     const [phaseTimeLeft, setPhaseTimeLeft] = useState(3);
     const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
     const [playerPose, setPlayerPose] = useState(0);
     const [guardPose, setGuardPose] = useState(0);
@@ -160,7 +243,6 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
             case 5:
                 setPhase('end');
                 if (playerScore > guardScore) {
-                    playSound(SoundType.WIN_TANEC);
                     setStatus('won');
                 } else {
                     setStatus('lost');
@@ -308,7 +390,12 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
     );
 
     if (status === 'won') {
-        return <GenericWinScreen title="ПРИХОДИТЕ ЗАВТРА!" text="Но не опаздывайте!" buttonText="КУПИТЬ ЧАСЫ" onContinue={onWin} />;
+        return (
+             <>
+                <TanecUZakrytyhDvereyWinScreen onContinue={onWin} onPlayVideo={() => setVideoUrl("https://www.youtube.com/watch?v=ZyOkyXVPBt4")} />
+                {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
+            </>
+        )
     }
     if (status === 'lost') {
         return null;

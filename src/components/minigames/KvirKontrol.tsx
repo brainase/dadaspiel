@@ -8,7 +8,42 @@ import { MinigameHUD } from '../core/MinigameHUD';
 import { InstructionModal } from '../core/InstructionModal';
 import { instructionData } from '../../data/instructionData';
 
-export const KvirKontrolWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
+const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+    const getEmbedUrl = (videoUrl: string): string => {
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+            return videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+        }
+        if (videoUrl.includes("vkvideo.ru/video-")) {
+            const parts = videoUrl.split('video-')[1]?.split('_');
+            if (parts && parts.length === 2) {
+                const oid = `-${parts[0]}`;
+                const id = parts[1];
+                return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`;
+            }
+        }
+        return videoUrl;
+    };
+    const embedUrl = getEmbedUrl(url);
+
+    return (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={onClose}>
+            <div className="relative w-11/12 max-w-4xl aspect-video bg-black pixel-border" onClick={(e) => e.stopPropagation()}>
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={embedUrl}
+                    title="Video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                <button onClick={onClose} className="absolute -top-4 -right-4 pixel-button bg-red-600 text-2xl w-12 h-12 flex items-center justify-center z-10" aria-label="Закрыть видео">X</button>
+            </div>
+        </div>
+    );
+};
+
+export const KvirKontrolWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void; }> = ({ onContinue, onPlayVideo }) => {
     const { playSound } = useSettings();
     useEffect(() => {
         playSound(SoundType.WIN_KVIR);
@@ -23,7 +58,7 @@ export const KvirKontrolWinScreen: React.FC<{ onContinue: () => void }> = ({ onC
             @keyframes rainbow-win-move { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
             @keyframes text-pop-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         `}</style>
-            <h2 className="text-6xl text-white z-20" style={{animation: 'text-pop-in 1s ease-out 0.5s forwards', opacity: 0, textShadow: '4px 4px 0 #000'}}>ВЫ КВИР!</h2>
+            <h2 onClick={onPlayVideo} className="text-6xl text-white z-20 cursor-pointer hover:scale-105 transition-transform pointer-events-auto" style={{animation: 'text-pop-in 1s ease-out 0.5s forwards', opacity: 0, textShadow: '4px 4px 0 #000'}}>ВЫ КВИР!</h2>
             <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 pointer-events-auto" style={{animation: 'text-pop-in 1s ease-out 1.5s forwards', opacity: 0}}>ПРОХОДИМ</button>
         </div>
     );
@@ -59,6 +94,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
     const containerRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
     const [showInstructions, setShowInstructions] = useState(true);
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
     
     // Состояние для механики Чёрного Игрока
     const [round3Mode, setRound3Mode] = useState<'rotate' | 'color'>('rotate');
@@ -296,6 +332,11 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
         onWin();
     };
     
+    const handlePlayVideo = () => {
+        playSound(SoundType.BUTTON_CLICK);
+        setVideoUrl("https://www.youtube.com/watch?v=l0k6Grdu8OQ");
+    };
+    
     const instruction = instructionData['1-2'];
     const InstructionContent = instruction.content;
 
@@ -327,7 +368,8 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
             className="w-full h-full flex flex-col items-center p-4 relative overflow-hidden" 
             style={backgroundStyle}
         >
-            {status === 'won' && <KvirKontrolWinScreen onContinue={handleWinContinue} />}
+            {status === 'won' && <KvirKontrolWinScreen onContinue={handleWinContinue} onPlayVideo={handlePlayVideo} />}
+            {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
             
             {showInstructions && (
                 <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>

@@ -9,25 +9,75 @@ import { MinigameHUD } from '../core/MinigameHUD';
 import { InstructionModal } from '../core/InstructionModal';
 import { instructionData } from '../../data/instructionData';
 
+const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+    const getEmbedUrl = (videoUrl: string): string => {
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+            return videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+        }
+        if (videoUrl.includes("vkvideo.ru/video-")) {
+            const parts = videoUrl.split('video-')[1]?.split('_');
+            if (parts && parts.length === 2) {
+                const oid = `-${parts[0]}`;
+                const id = parts[1];
+                return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`;
+            }
+        }
+        return videoUrl;
+    };
+    const embedUrl = getEmbedUrl(url);
+
+    return (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={onClose}>
+            <div className="relative w-11/12 max-w-4xl aspect-video bg-black pixel-border" onClick={(e) => e.stopPropagation()}>
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={embedUrl}
+                    title="Video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                <button onClick={onClose} className="absolute -top-4 -right-4 pixel-button bg-red-600 text-2xl w-12 h-12 flex items-center justify-center z-10" aria-label="Закрыть видео">X</button>
+            </div>
+        </div>
+    );
+};
+
+
 // Экран победы: получение "стрададаховки".
 export const NePodavisWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
     useEffect(() => {
         playSound(SoundType.WIN_NEPODAVIS);
     }, [playSound]);
+    
+    const handlePlayVideo = () => {
+        playSound(SoundType.BUTTON_CLICK);
+        setVideoUrl("https://www.youtube.com/watch?v=29p14n_qeN0");
+    };
 
     return (
-        <div className="absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center animate-[fadeIn_0.5s]">
-             <h2 className="text-3xl text-yellow-300 mb-8">ВЫ ВЫЖИЛИ!</h2>
-             <div className="w-96 h-60 bg-slate-200 p-4 pixel-border flex flex-col text-black transform rotate-3" style={{textShadow: 'none'}}>
-                 <h3 className="text-xl text-center font-bold">Медицинская Стрададаховка</h3>
-                 <div className="flex-grow flex items-center justify-between mt-4">
-                     <div className="text-left text-sm space-y-1"><p>Страхователь: <strong>Георгий</strong></p><p>Риски: <strong>Нелепость Бытия</strong></p><p>Покрытие: <strong>До следующего раза</strong></p><p>Франшиза: <strong>Одна жизнь</strong></p></div>
-                     <div className="text-center"><div className="w-28 h-36 border-4 border-red-600 rounded-full flex items-center justify-center text-red-600 text-md font-bold">ДАДА <br/> APPROVED</div></div>
+        <>
+            <div className="absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center animate-[fadeIn_0.5s]">
+                 <h2 className="text-3xl text-yellow-300 mb-8">ВЫ ВЫЖИЛИ!</h2>
+                 <div
+                    onClick={handlePlayVideo}
+                    className="w-96 h-60 bg-slate-200 p-4 pixel-border flex flex-col text-black transform rotate-3 cursor-pointer hover:scale-105 transition-transform"
+                    style={{textShadow: 'none'}}
+                 >
+                     <h3 className="text-xl text-center font-bold">Медицинская Стрададаховка</h3>
+                     <div className="flex-grow flex items-center justify-between mt-4">
+                         <div className="text-left text-sm space-y-1"><p>Страхователь: <strong>Георгий</strong></p><p>Риски: <strong>Нелепость Бытия</strong></p><p>Покрытие: <strong>До следующего раза</strong></p><p>Франшиза: <strong>Одна жизнь</strong></p></div>
+                         <div className="text-center"><div className="w-28 h-36 border-4 border-red-600 rounded-full flex items-center justify-center text-red-600 text-md font-bold">ДАДА <br/> APPROVED</div></div>
+                     </div>
                  </div>
-             </div>
-              <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">ПРОХОДИМ</button>
-        </div>
+                  <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">ПРОХОДИМ</button>
+            </div>
+            {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
+        </>
     );
 };
 

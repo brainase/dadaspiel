@@ -146,6 +146,41 @@ const BLACK_PLAYER_ART_DATA = [
 "                    ",
 ];
 
+// Арт "Обычного Игрока" для мини-игры "Становление"
+export const ORDINARY_PLAYER_ART_DATA = [
+"                    ",
+"                    ",
+"      MMMMMM      ",
+"     MWWWWWWM     ",
+"    MWbWbWbWWM    ",
+"    MWWWWWWWWM    ",
+"     MWWWWWWM     ",
+"      MMMMMM      ",
+"     M L L M      ",
+"   M L LLL L M    ",
+"  M L LLLLL L M   ",
+"  M LLLLLLLL M    ",
+"  M L LLLLL L M   ",
+"   M L L L L M    ",
+"    M M M M       ",
+"   M M   M M      ",
+"  M M     M M     ",
+" MMM       MMM    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+"                    ",
+];
+
+
 // Карта, сопоставляющая персонажей с их пиксель-артом.
 export const CHARACTER_ART_MAP = {
   [Character.KANILA]: KANILA_ART_DATA,

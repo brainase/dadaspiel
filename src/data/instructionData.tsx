@@ -144,10 +144,12 @@ export const instructionData: { [key: string]: { title: string; content: Instruc
         title: "ПРИГОТОВЛЕНИЕ АЛАДОК",
         content: () => (
             <>
-                <p><strong>Цель:</strong> Приготовить блюдо по рецепту, собрав нужное количество правильных ингредиентов.</p>
-                <p><strong>Управление:</strong> Двигайте курсор или палец, чтобы перемещать сковородку и ловить падающие ингредиенты.</p>
-                <p>Следите за списком слева, чтобы знать, что и в каком количестве нужно поймать.</p>
-                <p className="text-red-500">Избегайте неправильных ингредиентов и не ловите лишнего, иначе получите штраф!</p>
+                <p>Эта игра состоит из двух фаз:</p>
+                <p><strong>1. Сбор ингредиентов:</strong><br/>
+                Ловите падающие ингредиенты в сковородку. Но будьте внимательны: их нужно собирать <strong>в строгом порядке</strong>, указанном в рецепте! Следующий нужный ингредиент будет подсвечен.</p>
+                <p><strong>2. Жарка аладушек:</strong><br/>
+                После сбора ингредиентов начинается жарка. Вокруг сковороды появится индикатор прожарки. Ваша задача — <strong>кликнуть по экрану</strong>, когда индикатор будет в <span className="text-green-400">зелёной зоне</span>, чтобы идеально перевернуть аладушек.</p>
+                 <p className="text-yellow-400">Приготовьте 3 идеальных аладушка, чтобы победить в раунде!</p>
             </>
         )
     },
@@ -165,32 +167,33 @@ export const instructionData: { [key: string]: { title: string; content: Instruc
     // Case 6
     '6-1': {
         title: "ФРУКТОВЫЙ СПОР",
-        content: ({ isMinigameInverted, currentRound, round }) => {
-            if (!currentRound) return null;
-            const previewData = isMinigameInverted ? currentRound.decoys[0] : currentRound;
-
-            // For rounds 2 and 3, show a simplified message.
-            if (round !== undefined && round > 0) {
-                const catchText = isMinigameInverted ? "А теперь НЕ лови это:" : "А теперь лови это:";
+        content: ({ character }) => {
+            if (character === Character.BLACK_PLAYER) {
                 return (
-                     <div className="flex flex-col items-center my-4">
-                        <p className="mb-2 text-xl">{catchText}</p>
-                        <div className="animate-pulse"><Fruit data={previewData} isPreview={true} /></div>
-                    </div>
+                    <>
+                        <p><strong>Цель:</strong> Выжить до истечения времени, сохранив свою <strong>[ЦЕЛОСТНОСТЬ]</strong>.</p>
+                        <p>Вы — Обычный Игрок на грани слома. Хорда Дадаизма обрушивает на вас экзистенциальные директивы.</p>
+                        <p>Ловите или избегайте падающие концепции, следуя указаниям вверху. Каждая ошибка уменьшает вашу Целостность.</p>
+                        <p className="text-red-500">Если шкала Целостности опустеет, вы будете сломлены.</p>
+                    </>
                 );
             }
-
-            // Full instructions for the first round.
-            const catchText = isMinigameInverted ? "В этом раунде НЕ лови вот это:" : "В этом раунде лови вот это:";
+            if (character === Character.KANILA) {
+                return (
+                    <>
+                        <p><strong>Цель:</strong> Устроить балаган и выиграть в споре, заполнив шкалу аргумента.</p>
+                        <p>Следуйте правилам вверху, но будьте начеку: они могут <strong>мерцать и меняться!</strong></p>
+                        <p>Иногда неправильные действия засчитываются как правильные (и наоборот). Это концептуальный глюк!</p>
+                        <p className="text-yellow-400">Ловите символ <strong>"Ў"</strong> для большого бонуса!</p>
+                    </>
+                );
+            }
+            // Default for Sexism
             return (
                 <>
-                    <p><strong>Цель:</strong> Поймать в корзину нужное количество правильных "фруктов".</p>
-                    <p>Правильный фрукт должен соответствовать трём параметрам: <strong>цвету, форме и букве</strong>.</p>
-                    <div className="flex flex-col items-center my-4">
-                        <p className="mb-2">{catchText}</p>
-                        <div className="animate-pulse"><Fruit data={previewData} isPreview={true} /></div>
-                    </div>
-                    <p className="text-red-500">Поимка неправильного "фрукта" считается ошибкой. Не наберите слишком много ошибок!</p>
+                    <p><strong>Цель:</strong> Доказать свою правоту через эстетику, заполнив шкалу аргумента.</p>
+                    <p>Правила теперь основаны на визуальных характеристиках: цветах и формах (например, <span className="text-yellow-300">"ЛОВИ: ТЁПЛЫЕ ЦВЕТА"</span>).</p>
+                    <p><strong>ВНИМАНИЕ:</strong> Каждые 10-15 секунд <strong>визуальный стиль</strong> игры будет меняться, заставляя вас адаптироваться к новому виду объектов.</p>
                 </>
             );
         }

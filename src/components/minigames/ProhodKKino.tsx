@@ -8,6 +8,42 @@ import { MinigameHUD } from '../core/MinigameHUD';
 import { InstructionModal } from '../core/InstructionModal';
 import { instructionData } from '../../data/instructionData';
 
+const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+    const getEmbedUrl = (videoUrl: string): string => {
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+            return videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+        }
+        if (videoUrl.includes("vkvideo.ru/video-")) {
+            const parts = videoUrl.split('video-')[1]?.split('_');
+            if (parts && parts.length === 2) {
+                const oid = `-${parts[0]}`;
+                const id = parts[1];
+                return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`;
+            }
+        }
+        return videoUrl;
+    };
+    const embedUrl = getEmbedUrl(url);
+
+    return (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={onClose}>
+            <div className="relative w-11/12 max-w-4xl aspect-video bg-black pixel-border" onClick={(e) => e.stopPropagation()}>
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={embedUrl}
+                    title="Video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                <button onClick={onClose} className="absolute -top-4 -right-4 pixel-button bg-red-600 text-2xl w-12 h-12 flex items-center justify-center z-10" aria-label="Закрыть видео">X</button>
+            </div>
+        </div>
+    );
+};
+
+
 const OBSTACLE_COLORS = ["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"];
 
 interface Obstacle { id: number; type: 'person' | 'animal' | 'concept'; content: string; x: number; y: number; vx: number; vy: number; size: number; color?: string; isHit?: boolean; }
@@ -101,6 +137,8 @@ const SilentMoviePlayer: React.FC<{ movieType: 'casablanca' | 'nosferatu' | 'tri
 export const ProhodKKinoWinScreen: React.FC<{ onContinue: () => void; isMuted: boolean }> = ({ onContinue, isMuted }) => {
     const { playSound } = useSettings();
     const [movie, setMovie] = useState<'casablanca' | 'nosferatu' | 'trip-to-the-moon' | null>(null);
+    const [movieFinished, setMovieFinished] = useState(false);
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
     
     const handleSetMovie = (movieType: 'casablanca' | 'nosferatu' | 'trip-to-the-moon') => {
         playSound(SoundType.BUTTON_CLICK);
@@ -111,6 +149,24 @@ export const ProhodKKinoWinScreen: React.FC<{ onContinue: () => void; isMuted: b
         playSound(SoundType.BUTTON_CLICK);
         onContinue();
     };
+    
+    const handlePlayVideo = () => {
+        playSound(SoundType.BUTTON_CLICK);
+        setVideoUrl("https://www.youtube.com/watch?v=v0OXygaPB8c");
+    };
+    
+    if (movieFinished) {
+        return (
+             <div className="absolute inset-0 bg-black/80 z-50 flex flex-col items-center justify-center text-center">
+                 <h2 className="text-4xl mb-6">Фильм окончен... но не дадаизм.</h2>
+                 <button onClick={handlePlayVideo} className="pixel-button p-4 text-2xl bg-yellow-600 text-black">
+                    ПОСЛЕСЛОВИЕ
+                 </button>
+                 <button onClick={handleBack} className="pixel-button absolute bottom-8 p-4 text-xl">ПРОДОЛЖИТЬ</button>
+                 {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
+            </div>
+        );
+    }
 
     if (!movie) {
         return (
@@ -126,7 +182,7 @@ export const ProhodKKinoWinScreen: React.FC<{ onContinue: () => void; isMuted: b
         )
     }
     
-    return <SilentMoviePlayer movieType={movie} onFinish={onContinue} isMuted={isMuted} />
+    return <SilentMoviePlayer movieType={movie} onFinish={() => setMovieFinished(true)} isMuted={isMuted} />
 };
 
 export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMinigameInverted?: boolean }> = ({ onWin, onLose, isMinigameInverted = false }) => {

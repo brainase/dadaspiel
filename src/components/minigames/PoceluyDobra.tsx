@@ -26,45 +26,94 @@ interface Particle {
     char: string;
 }
 
+const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+    const getEmbedUrl = (videoUrl: string): string => {
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+            return videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+        }
+        if (videoUrl.includes("vkvideo.ru/video-")) {
+            const parts = videoUrl.split('video-')[1]?.split('_');
+            if (parts && parts.length === 2) {
+                const oid = `-${parts[0]}`;
+                const id = parts[1];
+                return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`;
+            }
+        }
+        return videoUrl;
+    };
+    const embedUrl = getEmbedUrl(url);
+
+    return (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={onClose}>
+            <div className="relative w-11/12 max-w-4xl aspect-video bg-black pixel-border" onClick={(e) => e.stopPropagation()}>
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={embedUrl}
+                    title="Video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                <button onClick={onClose} className="absolute -top-4 -right-4 pixel-button bg-red-600 text-2xl w-12 h-12 flex items-center justify-center z-10" aria-label="Закрыть видео">X</button>
+            </div>
+        </div>
+    );
+};
+
 // Компонент, отображающий пропуск на "Гей-Оргию" при победе
 export const PoceluyDobraWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
     useEffect(() => {
         playSound(SoundType.WIN_DOBRO);
     }, [playSound]);
+    
+    const handlePlayVideo = () => {
+        playSound(SoundType.BUTTON_CLICK);
+        setVideoUrl("https://www.youtube.com/watch?v=VTaSn3mymIw");
+    };
 
     return (
-        <div className="absolute inset-0 bg-black flex flex-col items-center justify-center overflow-hidden z-30">
-            <style>{`
-            @keyframes rainbow-bg { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-            .rainbow-bg {
-                background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
-                background-size: 1800% 1800%;
-                animation: rainbow-bg 18s ease infinite;
-            }
-            @keyframes fly-in { from { transform: translateY(100vh) rotate(-180deg) scale(0); } to { transform: translateY(0) rotate(0) scale(1); } }
-            @keyframes float-around { 0% { transform: translate(0, 0); } 25% { transform: translate(10px, 20px); } 50% { transform: translate(-15px, -10px); } 75% { transform: translate(5px, -15px); } 100% { transform: translate(0, 0); } }
-            .flying-emoji { animation: float-around 8s ease-in-out infinite; }
-        `}</style>
-            <div className="absolute inset-0 rainbow-bg opacity-70"></div>
-            {/* Летающие эмодзи для атмосферы */}
-            <div className="absolute top-[10%] left-[15%] text-5xl flying-emoji" style={{ animationDelay: '0s' }}>🍆</div>
-            <div className="absolute top-[70%] left-[80%] text-5xl flying-emoji" style={{ animationDelay: '-2s' }}>🍑</div>
-            <div className="absolute top-[80%] left-[10%] text-5xl flying-emoji" style={{ animationDelay: '-4s' }}>💦</div>
-            <div className="absolute top-[20%] left-[75%] text-5xl flying-emoji" style={{ animationDelay: '-6s' }}>❤️‍🔥</div>
-            
-            <div className="w-96 h-56 bg-fuchsia-300 p-2 pixel-border flex flex-col items-center justify-around text-black transform rotate-[-3deg] animate-[fly-in_1s_cubic-bezier(.17,.67,.73,1.34)]" style={{textShadow: 'none'}}>
-                <h3 className="text-2xl font-bold tracking-widest">— ПРОХОДКА —</h3>
-                <div className="my-2 text-center">
-                    <p className="text-4xl font-bold">ГЕЙ-ОРГИЯ</p>
-                    <p className="text-lg">(добра)</p>
+        <>
+            <div className="absolute inset-0 bg-black flex flex-col items-center justify-center overflow-hidden z-30">
+                <style>{`
+                @keyframes rainbow-bg { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+                .rainbow-bg {
+                    background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
+                    background-size: 1800% 1800%;
+                    animation: rainbow-bg 18s ease infinite;
+                }
+                @keyframes fly-in { from { transform: translateY(100vh) rotate(-180deg) scale(0); } to { transform: translateY(0) rotate(0) scale(1); } }
+                @keyframes float-around { 0% { transform: translate(0, 0); } 25% { transform: translate(10px, 20px); } 50% { transform: translate(-15px, -10px); } 75% { transform: translate(5px, -15px); } 100% { transform: translate(0, 0); } }
+                .flying-emoji { animation: float-around 8s ease-in-out infinite; }
+            `}</style>
+                <div className="absolute inset-0 rainbow-bg opacity-70"></div>
+                {/* Летающие эмодзи для атмосферы */}
+                <div className="absolute top-[10%] left-[15%] text-5xl flying-emoji" style={{ animationDelay: '0s' }}>🍆</div>
+                <div className="absolute top-[70%] left-[80%] text-5xl flying-emoji" style={{ animationDelay: '-2s' }}>🍑</div>
+                <div className="absolute top-[80%] left-[10%] text-5xl flying-emoji" style={{ animationDelay: '-4s' }}>💦</div>
+                <div className="absolute top-[20%] left-[75%] text-5xl flying-emoji" style={{ animationDelay: '-6s' }}>❤️‍🔥</div>
+                
+                <div 
+                    onClick={handlePlayVideo}
+                    className="w-96 h-56 bg-fuchsia-300 p-2 pixel-border flex flex-col items-center justify-around text-black transform rotate-[-3deg] animate-[fly-in_1s_cubic-bezier(.17,.67,.73,1.34)] cursor-pointer hover:scale-105 transition-transform" 
+                    style={{textShadow: 'none'}}
+                >
+                    <h3 className="text-2xl font-bold tracking-widest">— ПРОХОДКА —</h3>
+                    <div className="my-2 text-center">
+                        <p className="text-4xl font-bold">ГЕЙ-ОРГИЯ</p>
+                        <p className="text-lg">(добра)</p>
+                    </div>
+                    <p className="text-sm">*предъявителю сего*</p>
                 </div>
-                <p className="text-sm">*предъявителю сего*</p>
+                <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">
+                    ПРОХОДИМ
+                </button>
             </div>
-            <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">
-                ПРОХОДИМ
-            </button>
-        </div>
+            {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
+        </>
     );
 };
 

@@ -8,6 +8,41 @@ import { PIXEL_ART_PALETTE } from '../../../characterArt';
 import { InstructionModal } from '../core/InstructionModal';
 import { instructionData } from '../../data/instructionData';
 
+const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+    const getEmbedUrl = (videoUrl: string): string => {
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+            return videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+        }
+        if (videoUrl.includes("vkvideo.ru/video-")) {
+            const parts = videoUrl.split('video-')[1]?.split('_');
+            if (parts && parts.length === 2) {
+                const oid = `-${parts[0]}`;
+                const id = parts[1];
+                return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`;
+            }
+        }
+        return videoUrl;
+    };
+    const embedUrl = getEmbedUrl(url);
+
+    return (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={onClose}>
+            <div className="relative w-11/12 max-w-4xl aspect-video bg-black pixel-border" onClick={(e) => e.stopPropagation()}>
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={embedUrl}
+                    title="Video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                <button onClick={onClose} className="absolute -top-4 -right-4 pixel-button bg-red-600 text-2xl w-12 h-12 flex items-center justify-center z-10" aria-label="Закрыть видео">X</button>
+            </div>
+        </div>
+    );
+};
+
 // --- Dada Animation (from old PoiskiKartiny317) ---
 const DadaWinAnimation = () => {
     const words = React.useMemo(() => Array.from({ length: 40 }).map((_, i) => {
@@ -130,9 +165,16 @@ const ArtTicket: React.FC<{ pisyunImage?: React.ReactNode }> = ({ pisyunImage })
 
 export const ArtRevealWinScreen: React.FC<{ pisyunImage: React.ReactNode; onContinue: () => void }> = ({ pisyunImage, onContinue }) => {
     const { playSound } = useSettings();
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
     useEffect(() => {
         playSound(SoundType.ART_REVEAL);
     }, [playSound]);
+
+    const handlePlayVideo = () => {
+        playSound(SoundType.BUTTON_CLICK);
+        setVideoUrl("https://vkvideo.ru/video-126259657_456239031");
+    };
     
     // Re-implementation of the flying words animation
     const DadaWordExplosion = () => {
@@ -165,31 +207,37 @@ export const ArtRevealWinScreen: React.FC<{ pisyunImage: React.ReactNode; onCont
     };
 
     return (
-        <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center overflow-hidden z-40">
-             <div className="absolute inset-0 z-0">
-                <svg width="100%" height="100%">
-                    <defs>
-                        <pattern id="dada-bg-pattern" patternUnits="userSpaceOnUse" width="100" height="100" patternTransform="scale(1) rotate(25)">
-                            <rect width="100" height="100" fill="#2e3546" />
-                            <path d="M 10 10 L 30 80" stroke="#c6934b" strokeWidth="3" />
-                            <circle cx="80" cy="20" r="10" fill="#703529" />
-                            <rect x="50" y="50" width="20" height="20" fill="none" stroke="#283d70" strokeWidth="4" transform="rotate(15 60 60)" />
-                        </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#dada-bg-pattern)" />
-                </svg>
-            </div>
+        <>
+            <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center overflow-hidden z-40">
+                 <div className="absolute inset-0 z-0">
+                    <svg width="100%" height="100%">
+                        <defs>
+                            <pattern id="dada-bg-pattern" patternUnits="userSpaceOnUse" width="100" height="100" patternTransform="scale(1) rotate(25)">
+                                <rect width="100" height="100" fill="#2e3546" />
+                                <path d="M 10 10 L 30 80" stroke="#c6934b" strokeWidth="3" />
+                                <circle cx="80" cy="20" r="10" fill="#703529" />
+                                <rect x="50" y="50" width="20" height="20" fill="none" stroke="#283d70" strokeWidth="4" transform="rotate(15 60 60)" />
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#dada-bg-pattern)" />
+                    </svg>
+                </div>
 
-            <DadaWordExplosion />
-            
-            <div className="z-10 animate-[fadeIn_1s_1s_forwards] opacity-0">
-                 <ArtTicket pisyunImage={pisyunImage} />
+                <DadaWordExplosion />
+                
+                <div 
+                    onClick={handlePlayVideo}
+                    className="z-10 animate-[fadeIn_1s_1s_forwards] opacity-0 cursor-pointer hover:scale-105 transition-transform"
+                >
+                     <ArtTicket pisyunImage={pisyunImage} />
+                </div>
+                
+                <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 animate-[fadeIn_1s_2s_forwards] opacity-0">
+                    ПРОХОДИМ
+                </button>
             </div>
-            
-            <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 animate-[fadeIn_1s_2s_forwards] opacity-0">
-                ПРОХОДИМ
-            </button>
-        </div>
+            {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
+        </>
     );
 };
 

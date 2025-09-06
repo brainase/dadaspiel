@@ -9,6 +9,41 @@ import { MinigameHUD } from '../core/MinigameHUD';
 import { InstructionModal } from '../core/InstructionModal';
 import { instructionData } from '../../data/instructionData';
 
+const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
+    const getEmbedUrl = (videoUrl: string): string => {
+        if (videoUrl.includes("youtube.com/watch?v=")) {
+            return videoUrl.replace("watch?v=", "embed/") + "?autoplay=1&rel=0";
+        }
+        if (videoUrl.includes("vkvideo.ru/video-")) {
+            const parts = videoUrl.split('video-')[1]?.split('_');
+            if (parts && parts.length === 2) {
+                const oid = `-${parts[0]}`;
+                const id = parts[1];
+                return `https://vk.com/video_ext.php?oid=${oid}&id=${id}&autoplay=1`;
+            }
+        }
+        return videoUrl;
+    };
+    const embedUrl = getEmbedUrl(url);
+
+    return (
+        <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center animate-[fadeIn_0.3s]" onClick={onClose}>
+            <div className="relative w-11/12 max-w-4xl aspect-video bg-black pixel-border" onClick={(e) => e.stopPropagation()}>
+                <iframe
+                    width="100%"
+                    height="100%"
+                    src={embedUrl}
+                    title="Video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                ></iframe>
+                <button onClick={onClose} className="absolute -top-4 -right-4 pixel-button bg-red-600 text-2xl w-12 h-12 flex items-center justify-center z-10" aria-label="Закрыть видео">X</button>
+            </div>
+        </div>
+    );
+};
+
 const AnimatedBottle: React.FC<{ anim: string; position: React.CSSProperties; size: string; }> = ({ anim, position, size }) => {
     const splashes = useMemo(() => Array.from({length: 20}).map((_, i) => ({
         style: {
@@ -33,7 +68,7 @@ const AnimatedBottle: React.FC<{ anim: string; position: React.CSSProperties; si
     );
 };
 
-export const NaleyShampanskogoWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
+export const NaleyShampanskogoWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void; }> = ({ onContinue, onPlayVideo }) => {
     const { playSound } = useSettings();
     useEffect(() => {
         playSound(SoundType.WIN_SHAMPANSKOE);
@@ -125,7 +160,7 @@ export const NaleyShampanskogoWinScreen: React.FC<{ onContinue: () => void }> = 
                 <div key={i} className="bubble-particle" style={bubble.style}></div>
             ))}
             
-            <h2 className="text-5xl z-20 heady-title opacity-0">Vinum artem favet!</h2>
+            <h2 onClick={onPlayVideo} className="text-5xl z-20 heady-title opacity-0 cursor-pointer hover:scale-105 transition-transform">Vinum artem favet!</h2>
             
             <div className="absolute w-full h-full pointer-events-none">
                 {bottles.map((bottle, i) => (
@@ -224,6 +259,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
     const [particles, setParticles] = useState<any[]>([]);
     const [easterEggStage, setEasterEggStage] = useState(0);
     const [speechBubble, setSpeechBubble] = useState({ text: '', visible: false });
+    const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
     const [waiter, setWaiter] = useState({
         isVisible: false,
@@ -425,6 +461,11 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
         playSound(SoundType.BUTTON_CLICK);
         onWin();
     };
+    
+    const handlePlayVideo = () => {
+        playSound(SoundType.BUTTON_CLICK);
+        setVideoUrl("https://www.youtube.com/watch?v=l0k6Grdu8OQ");
+    };
 
     const instruction = instructionData['1-1'];
     const InstructionContent = instruction.content;
@@ -438,7 +479,8 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             className="w-full h-full cursor-none relative overflow-hidden p-4 flex flex-col items-center"
         >
             <GalleryBackground />
-            {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} />}
+            {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} onPlayVideo={handlePlayVideo} />}
+            {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
             
             {showInstructions && (
                 <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
