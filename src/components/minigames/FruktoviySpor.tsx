@@ -474,10 +474,10 @@ const ArgumentStrengthBar: React.FC<{ strength: number, title: string }> = ({ st
  */
 export const FruktoviySporWinScreen: React.FC<{ onContinue: () => void, character: Character | null, onPlayVideo: () => void }> = ({ onContinue, character, onPlayVideo }) => {
     const { playSound } = useSettings();
-    useEffect(() => { playSound(SoundType.WIN_FRUKTY); }, [playSound]);
 
     // Экран победы для Канилы
     if (character === Character.KANILA) {
+        useEffect(() => { playSound(SoundType.WIN_FRUKTY); }, [playSound]);
         // Создаем массив символов для анимации "взрыва"
         const symbols = useMemo(() => Array.from({ length: 30 }).map((_, i) => ({
             id: i,
@@ -524,26 +524,95 @@ export const FruktoviySporWinScreen: React.FC<{ onContinue: () => void, characte
     
     // Экран победы для Сексизма
     if (character === Character.SEXISM) {
+        const [animationPhase, setAnimationPhase] = useState<'start' | 'splattering' | 'signing' | 'reveal'>('start');
+
+        const splatters = useMemo(() => {
+            const fruitColors = ['#FF6347', '#FFD700', '#800080', '#FFA500', '#DAA520', '#4B0082'];
+            return Array.from({ length: 12 }).map((_, i) => ({
+                id: i,
+                color: fruitColors[i % fruitColors.length],
+                style: {
+                    '--start-x': `${(Math.random() - 0.5) * 150}vw`,
+                    '--start-y': `${(Math.random() - 0.5) * 150}vh`,
+                    '--end-x': `${15 + Math.random() * 70}%`,
+                    '--end-y': `${15 + Math.random() * 70}%`,
+                    '--size': `${20 + Math.random() * 15}%`,
+                    '--rotation': `${Math.random() * 360}deg`,
+                    animation: `splatter-fly-in 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards`,
+                    animationDelay: `${0.5 + i * 0.2}s`,
+                } as React.CSSProperties
+            }));
+        }, []);
+
+        useEffect(() => {
+            playSound(SoundType.WIN_FRUKTY);
+            const toSplat = setTimeout(() => {
+                setAnimationPhase('splattering');
+                splatters.forEach((_, i) => {
+                    setTimeout(() => playSound(SoundType.PLOP), 500 + i * 200 + 450);
+                });
+            }, 500);
+            const toSign = setTimeout(() => {
+                setAnimationPhase('signing');
+                playSound(SoundType.SWOOSH);
+            }, 500 + (splatters.length * 200) + 500);
+            const toReveal = setTimeout(() => {
+                setAnimationPhase('reveal');
+                playSound(SoundType.ITEM_PLACE_SUCCESS);
+            }, 500 + (splatters.length * 200) + 500 + 1500);
+
+            return () => { clearTimeout(toSplat); clearTimeout(toSign); clearTimeout(toReveal); };
+        }, [playSound, splatters]);
+
         return (
-            <div className="absolute inset-0 bg-stone-900/90 z-40 flex flex-col items-center justify-center animate-[fadeIn_0.5s]">
-                {/* Рамка "картины" */}
-                <div className="w-[32rem] h-80 bg-stone-300 p-4 border-[16px] border-yellow-700 shadow-[0_0_0_8px_#a16207,0_10px_30px_#000] flex flex-col items-center justify-center text-center relative"
-                     style={{
-                         backgroundImage: 'url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWYmJicnJyqqqrFxcWxsbGjo6O3t7e+vr6enp6ioqKmpqa0tLS1tbXExMQoKMeiAAAAVklEQVR42tXQRw0AIAwAOP7/d1sqxZg2sXQErJ2hmFNwcvB27wZ2A0gYMAoFJEiAJAkYxQIKZECxApwBQy8HkQEa2gGiA5i2sA2gKQAJkQCFw8DqgKyAhaM6gKcA/DqgBw0AnwJ6wMsA/gL4/wJgAAYzOTwhvRBbAAAAAElFTkSuQmCC)',
-                         backgroundRepeat: 'repeat',
-                     }}>
-                    <h2 className="text-4xl text-stone-800 mb-8" style={{fontFamily: 'serif', textShadow: '1px 1px 1px #fff'}}>КОМПОЗИЦИЯ ЗАВЕРШЕНА</h2>
-                    <div className="flex gap-4">
-                        {/* Кнопка в виде музейной таблички */}
-                        <div onClick={onPlayVideo} className="bg-stone-700 p-2 border-2 border-stone-900 cursor-pointer hover:bg-stone-600 transition-colors">
-                            <h4 className="text-white text-lg">ЭКСПОНАТ 6-1</h4>
-                            <p className="text-stone-300 text-sm">ВИДЕО-АРТ</p>
-                        </div>
-                        <button onClick={onContinue} className="pixel-button p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 self-end">ПРОХОДИМ</button>
-                    </div>
-                    {/* Подпись художника */}
-                    <div className="absolute bottom-4 right-4 text-yellow-900" style={{fontFamily: 'cursive', fontSize: '1.2rem'}}>S. Evanovich</div>
+            <div className="absolute inset-0 bg-stone-900/90 z-40 flex flex-col items-center justify-center animate-[fadeIn_0.5s] overflow-hidden">
+                <style>{`
+                    .art-frame {
+                        width: 32rem; height: 20rem; background-color: #fdf6e4; padding: 1rem;
+                        border: 16px solid #b8860b;
+                        box-shadow: inset 0 0 0 8px #8b4513, 0 10px 30px #000;
+                        position: relative; transform: scale(0.8); opacity: 0;
+                        animation: frame-appear 1s ease-out forwards;
+                    }
+                    @keyframes frame-appear { to { transform: scale(1); opacity: 1; } }
+                    .splatter {
+                        position: absolute; border-radius: 50%; filter: blur(2px);
+                        opacity: 0; transform: translate(var(--start-x), var(--start-y)) scale(0);
+                    }
+                    @keyframes splatter-fly-in {
+                        50% { opacity: 0.8; }
+                        100% { opacity: 0.8; transform: translate(var(--end-x), var(--end-y)) scale(1) rotate(var(--rotation)); }
+                    }
+                    .signature {
+                        position: absolute; bottom: 2rem; right: 2rem; color: #2e2418;
+                        font-family: 'cursive'; font-size: 1.5rem; overflow: hidden;
+                        white-space: nowrap; width: 0; border-right: 2px solid #2e2418;
+                        animation: typing 1.5s steps(15, end) forwards, blink-caret .75s step-end infinite;
+                        animation-delay: 0s, 1.5s;
+                    }
+                    @keyframes typing { from { width: 0 } to { width: 10em; } }
+                    @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: #2e2418; } }
+                    @keyframes reveal-fade-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+                `}</style>
+                <div className="art-frame">
+                    {(animationPhase === 'splattering' || animationPhase === 'signing' || animationPhase === 'reveal') &&
+                        splatters.map(s => <div key={s.id} className="splatter" style={{ ...s.style, backgroundColor: s.color, width: s.style['--size'], height: s.style['--size'] }}></div>)
+                    }
+                    {(animationPhase === 'signing' || animationPhase === 'reveal') &&
+                         <div className="signature">S. Evanovich</div>
+                    }
                 </div>
+                {animationPhase === 'reveal' && (
+                    <div className="text-center absolute bottom-0 w-full p-8 flex flex-col items-center" style={{ animation: 'reveal-fade-in 1s ease-out forwards' }}>
+                        <div className="flex gap-4">
+                            <div onClick={onPlayVideo} className="bg-stone-700 p-2 border-2 border-stone-900 cursor-pointer hover:bg-stone-600 transition-colors">
+                                <h4 className="text-white text-lg">ЭКСПОНАТ 6-1</h4>
+                                <p className="text-stone-300 text-sm">ВИДЕО-АРТ</p>
+                            </div>
+                            <button onClick={onContinue} className="pixel-button p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 self-end">ПРОХОДИМ</button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
