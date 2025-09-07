@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode, useMemo, useRef } from 'react';
 import { GameScreen, Character, CaseData, LogEntry, PlayerProfile } from '../../types';
 import { CASES } from '../data/caseData';
 import { playSound as playSoundUtil, toggleMuteState, getMuteState, SoundType, stopMusic } from '../utils/AudioEngine';
+import { MINIGAME_VIDEO_MAP } from '../data/videoData';
 
 // --- Type Definitions for each Context ---
 
@@ -55,6 +55,8 @@ interface SessionContextType {
     forcedOutro: string | null;
     absurdEdgeUsedInSession: boolean;
     isAbsurdEdgeBonusRound: boolean;
+    isGlitchWin: boolean;
+    glitchWinVideoUrl: string | null;
     startCase: (caseId: number) => void;
     winMinigame: () => void;
     loseMinigame: () => void;
@@ -65,6 +67,7 @@ interface SessionContextType {
     activateFourthWall: () => void;
     handleMistake: () => boolean;
     activateAbsurdEdge: () => void;
+    proceedAfterGlitchWin: () => void;
 }
 
 
@@ -131,6 +134,8 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [kanilaMistakeUsedInMinigame, setKanilaMistakeUsedInMinigame] = useState(false);
     const [absurdEdgeUsedInSession, setAbsurdEdgeUsedInSession] = useState(false);
     const [isAbsurdEdgeBonusRound, setIsAbsurdEdgeBonusRound] = useState(false);
+    const [isGlitchWin, setIsGlitchWin] = useState(false);
+    const [glitchWinVideoUrl, setGlitchWinVideoUrl] = useState<string | null>(null);
     const isTransitioning = useRef(false);
 
     // --- Производное состояние ---
@@ -319,18 +324,28 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         stopMusic(); // Stop background music during the loss sequence
         setIsAbsurdEdgeBonusRound(false);
 
-        // Специальная обработка для бонусной игры "Переверни Календарь" (ID "3-2").
-        // Это бонусная игра, поэтому проигрыш не должен отнимать жизнь.
-        // Игрок переходит к следующей мини-игре без очков.
         if (currentCase?.minigames[minigameIndex]?.id === '3-2') {
             logEvent("Bonus game 'Pereverni Kalendar' lost. Proceeding without penalty.");
-            playSound(SoundType.BUTTON_CLICK); // Нейтральный звук
+            playSound(SoundType.BUTTON_CLICK);
             isTransitioning.current = true;
-            nextMinigame(true); // Переход к следующей игре без очков.
+            nextMinigame(true);
             return;
         }
 
-        if (character === Character.KANILA && Math.random() < 0.5) { logEvent("Anarchic Glitch! Loss becomes a win (no score)."); playSound(SoundType.TRANSFORM_SUCCESS); isTransitioning.current = true; nextMinigame(true); return; }
+        if (character === Character.KANILA && Math.random() < 0.5) {
+            logEvent("Anarchic Glitch! Loss becomes a win (no score).");
+            playSound(SoundType.TRANSFORM_SUCCESS);
+            isTransitioning.current = true;
+            
+            // Find video URL for the lost minigame
+            const currentMinigameId = currentCase?.minigames[minigameIndex]?.id;
+            const videoUrl = currentMinigameId ? MINIGAME_VIDEO_MAP[currentMinigameId] : null;
+            setGlitchWinVideoUrl(videoUrl);
+
+            setIsGlitchWin(true);
+            return;
+        }
+
         isTransitioning.current = true; playSound(SoundType.PLAYER_LOSE);
         logEvent(`Minigame lost: ${currentCase?.minigames[minigameIndex]?.name || 'standalone'}`);
         const newLives = lives - 1;
@@ -354,12 +369,17 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const activateFourthWall = useCallback(() => { if (character !== Character.BLACK_PLAYER || abilityUsedInSession || !currentCase) return; playSound(SoundType.DESTROY); logEvent("Fourth Wall activated."); setAbilityUsedInSession(true); setForcedOutro("Вы воспользовались «читом»."); setSessionScore(caseStartScore); nextMinigame(true); }, [character, abilityUsedInSession, currentCase, caseStartScore, logEvent, playSound, nextMinigame]);
     const handleMistake = useCallback(() => { if (character !== Character.KANILA || kanilaMistakeUsedInMinigame) return false; logEvent("Conceptual Mistake triggered!"); setKanilaMistakeUsedInMinigame(true); setSessionScore(s => s + 50); playSound(SoundType.GENERIC_CLICK); return true; }, [character, kanilaMistakeUsedInMinigame, logEvent, playSound]);
     const activateAbsurdEdge = useCallback(() => { if (character !== Character.BLACK_PLAYER || !activeProfile?.hasDadaToken || absurdEdgeUsedInSession || screen !== GameScreen.MINIGAME_INTRO) return; playSound(SoundType.DESTROY); logEvent("Absurd Edge activated."); setAbsurdEdgeUsedInSession(true); setIsAbsurdEdgeBonusRound(true); setIsMinigameInverted(true); }, [character, activeProfile, absurdEdgeUsedInSession, screen, playSound, logEvent]);
+    const proceedAfterGlitchWin = useCallback(() => {
+        setIsGlitchWin(false);
+        setGlitchWinVideoUrl(null); // Reset the URL
+        nextMinigame(true); // Proceed without score
+    }, [nextMinigame]);
 
     // --- Memoized Context Values ---
     const navigationContextValue = useMemo(() => ({ screen, setScreen, animationToView, setAnimationToView, jumpToMinigame }), [screen, animationToView, setScreen, jumpToMinigame]);
     const settingsContextValue = useMemo(() => ({ debugMode, toggleDebug: () => setDebugMode(d => !d), isLogging, toggleLogging: () => setIsLogging(l => !l), setIsLogging, log, logEvent, isMuted, toggleMute, playSound, debugCharacter, setDebugCharacter }), [debugMode, isLogging, log, isMuted, debugCharacter, logEvent, playSound, toggleMute]);
     const profileContextValue = useMemo(() => ({ profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, logout, dynamicCases }), [profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, logout, dynamicCases]);
-    const sessionContextValue = useMemo(() => ({ character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, startCase, winMinigame, loseMinigame, killPlayer, addLife: (amount = 1) => setLives(l => l + amount), addScore: (points) => setSessionScore(s => s + points), activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge }), [character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, startCase, winMinigame, loseMinigame, killPlayer, activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge]);
+    const sessionContextValue = useMemo(() => ({ character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, isGlitchWin, glitchWinVideoUrl, startCase, winMinigame, loseMinigame, killPlayer, addLife: (amount = 1) => setLives(l => l + amount), addScore: (points) => setSessionScore(s => s + points), activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge, proceedAfterGlitchWin }), [character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, isGlitchWin, glitchWinVideoUrl, startCase, winMinigame, loseMinigame, killPlayer, activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge, proceedAfterGlitchWin]);
 
     return (
         <NavigationContext.Provider value={navigationContextValue}>
