@@ -160,8 +160,17 @@ export const NaleyShampanskogoWinScreen: React.FC<{ onContinue: () => void; onPl
                 <div key={i} className="bubble-particle" style={bubble.style}></div>
             ))}
             
-            <h2 onClick={onPlayVideo} className="text-5xl z-20 heady-title opacity-0 cursor-pointer hover:scale-105 transition-transform">Vinum artem favet!</h2>
-            
+            <div className="text-center z-20 flex flex-col items-center gap-4">
+                <h2 className="text-5xl heady-title opacity-0">Vinum artem favet!</h2>
+                <button
+                    onClick={onPlayVideo}
+                    className="pixel-button p-3 text-2xl bg-yellow-500 text-black hover:bg-yellow-400 opacity-0"
+                    style={{animation: 'text-appear 1s 0.5s ease-out forwards'}}
+                >
+                    ПРУФЫ
+                </button>
+            </div>
+
             <div className="absolute w-full h-full pointer-events-none">
                 {bottles.map((bottle, i) => (
                     <AnimatedBottle key={i} {...bottle} />

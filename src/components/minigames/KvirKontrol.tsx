@@ -58,7 +58,15 @@ export const KvirKontrolWinScreen: React.FC<{ onContinue: () => void; onPlayVide
             @keyframes rainbow-win-move { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
             @keyframes text-pop-in { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         `}</style>
-            <h2 onClick={onPlayVideo} className="text-6xl text-white z-20 cursor-pointer hover:scale-105 transition-transform pointer-events-auto" style={{animation: 'text-pop-in 1s ease-out 0.5s forwards', opacity: 0, textShadow: '4px 4px 0 #000'}}>ВЫ КВИР!</h2>
+            <div className="text-center z-20 flex flex-col items-center gap-4">
+                 <button
+                    onClick={onPlayVideo}
+                    className="pixel-button p-3 text-6xl bg-fuchsia-500 text-white hover:bg-lime-400 pointer-events-auto opacity-0"
+                    style={{animation: 'text-pop-in 1s ease-out 1s forwards', opacity: 0, textShadow: '4px 4px 0 #000'}}
+                >
+                    ВЫ КВИР!
+                </button>
+            </div>
             <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 pointer-events-auto" style={{animation: 'text-pop-in 1s ease-out 1.5s forwards', opacity: 0}}>ПРОХОДИМ</button>
         </div>
     );
