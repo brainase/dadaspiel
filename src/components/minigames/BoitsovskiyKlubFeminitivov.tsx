@@ -244,19 +244,26 @@ export const BoitsovskiyKlubFeminitivovWinScreen: React.FC<{ onContinue: () => v
                 @keyframes fly-across {
                     to { transform: translateX(var(--destination-x)) rotate(720deg); }
                 }
+                @keyframes button-fade-in {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
             `}</style>
-            <div className="absolute inset-0 bg-animate"></div>
-
-            {phase === 'victory' && flyingSymbols.map(s => (
-                <div key={s.id} style={s.style}>{s.symbol}</div>
-            ))}
-
-            {renderPillars()}
-            {renderAttackers()}
-            {renderDebris()}
             
+            {/* Animation Layer */}
+            <div className="absolute inset-0 z-10">
+                <div className="absolute inset-0 bg-animate"></div>
+                 {phase === 'victory' && flyingSymbols.map(s => (
+                    <div key={s.id} style={s.style}>{s.symbol}</div>
+                ))}
+                {renderPillars()}
+                {renderAttackers()}
+                {renderDebris()}
+            </div>
+            
+            {/* UI Layer */}
             {phase === 'victory' && (
-                <div className="flex flex-col items-center justify-center z-10">
+                <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
                     <div className="relative mb-24">
                         <h2 className="text-6xl font-black horda-final-text">
                             ХОРДА!
@@ -267,7 +274,11 @@ export const BoitsovskiyKlubFeminitivovWinScreen: React.FC<{ onContinue: () => v
                         <div className="horda-friend" style={{ bottom: '0rem', right: '-5rem', animationDelay: '0.8s' }}>ДА!</div>
                         <div className="horda-friend" style={{ bottom: '-4rem', right: '4rem', transform: 'rotate(15deg)', animationDelay: '1.0s' }}>ДА!</div>
                     </div>
-                    <button onClick={onContinue} className="pixel-button p-4 text-2xl z-50 bg-green-700" style={{ animation: 'horda-slam-and-shake 1.8s 0.5s forwards', opacity: 0 }}>
+                    <button 
+                        onClick={onContinue} 
+                        className="pixel-button absolute bottom-8 p-4 text-2xl bg-green-700" 
+                        style={{ animation: 'button-fade-in 1s 1.5s ease-out forwards', opacity: 0 }}
+                    >
                         ПРОХОДИМ
                     </button>
                 </div>
