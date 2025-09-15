@@ -1,13 +1,12 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { PixelArt } from '../core/PixelArt';
 import { BOTTLE_ART_DATA } from '../../miscArt';
 import { PIXEL_ART_PALETTE } from '../../../characterArt';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
     const getEmbedUrl = (videoUrl: string): string => {
@@ -251,6 +250,7 @@ const Glass: React.FC<{ fillPercentage: number }> = ({ fillPercentage }) => {
 export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { playSound } = useSettings();
     const { killPlayer } = useSession();
+    const { isInstructionModalVisible } = useNavigation();
     // --- Ссылки ---
     const gameAreaRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
@@ -259,7 +259,6 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
     const hoverTimeOverBottle = useRef(0);
 
     // --- Состояние игры ---
-    const [showInstructions, setShowInstructions] = useState(true);
     const [round, setRound] = useState(1);
     const [glassPos, setGlassPos] = useState({ x: 0, y: 0 });
     const [fill, setFill] = useState(0);
@@ -444,7 +443,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             }
             return { ...w, timer: newTimer };
         });
-      }, [glassPos, status, round, roundSettings, onLose, waiter, easterEggStage, killPlayer, playSound]), status === 'playing' && !showInstructions);
+      }, [glassPos, status, round, roundSettings, onLose, waiter, easterEggStage, killPlayer, playSound]), status === 'playing' && !isInstructionModalVisible);
 
     useEffect(() => {
         if (fill >= 100) {
@@ -476,9 +475,6 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
         setVideoUrl("https://www.youtube.com/watch?v=l0k6Grdu8OQ");
     };
 
-    const instruction = instructionData['1-1'];
-    const InstructionContent = instruction.content;
-
     return (
         <div 
             ref={gameAreaRef} 
@@ -491,13 +487,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} onPlayVideo={handlePlayVideo} />}
             {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
             
-            {showInstructions && (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            )}
-
-            {status === 'playing' && !showInstructions && <>
+            {status === 'playing' && <>
                 <MinigameHUD>
                     <div className="w-full text-center text-3xl" style={{color: '#333', textShadow: '1px 1px 2px white'}}>
                         РАУНД: {round}/3 | ВРЕМЯ: {Math.ceil(timeLeft)}

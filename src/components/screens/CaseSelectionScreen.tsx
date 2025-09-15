@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { useSession, useProfile, useSettings } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 
 export const CaseSelectionScreen: React.FC = () => {
   const { startCase } = useSession();
-  const { activeProfile, logout, dynamicCases: CASES } = useProfile();
+  const { activeProfile, requestLogout, dynamicCases: CASES } = useProfile();
   const { playSound } = useSettings();
 
   if (!activeProfile) {
@@ -39,7 +40,7 @@ export const CaseSelectionScreen: React.FC = () => {
 
   const handleLogout = () => {
       playSound(SoundType.BUTTON_CLICK);
-      logout();
+      requestLogout();
   }
 
   return (

@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { STROITELNIE_TERMINY } from '../../data/wordData';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
     const getEmbedUrl = (videoUrl: string): string => {
@@ -188,6 +186,7 @@ export const ProhodKKinoWinScreen: React.FC<{ onContinue: () => void; isMuted: b
 export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMinigameInverted?: boolean }> = ({ onWin, onLose, isMinigameInverted = false }) => {
     const { playSound, isMuted } = useSettings();
     const { addScore, character } = useSession();
+    const { isInstructionModalVisible } = useNavigation();
     const gameAreaRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
 
@@ -207,7 +206,6 @@ export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMi
     const [player, setPlayer] = useState({ x: 5, y: 50 }); // Позиция игрока в %.
     const [obstacles, setObstacles] = useState<Obstacle[]>([]);
     const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
-    const [showInstructions, setShowInstructions] = useState(true);
     
     // Генерация препятствий для каждого раунда.
     useEffect(() => {
@@ -288,10 +286,7 @@ export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMi
                 return o;
             }));
         }
-      }, [gameStatus, player.x, round, onLose, playSound, isMinigameInverted, addScore, settings.playerSpeed]), gameStatus === 'playing' && !showInstructions);
-    
-    const instruction = instructionData['3-1'];
-    const InstructionContent = instruction.content;
+      }, [gameStatus, player.x, round, onLose, playSound, isMinigameInverted, addScore, settings.playerSpeed]), gameStatus === 'playing' && !isInstructionModalVisible);
 
     return (
         <div 
@@ -305,13 +300,7 @@ export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMi
             {gameStatus === 'won' && <ProhodKKinoWinScreen onContinue={onWin} isMuted={isMuted} />}
             {gameStatus === 'lost' && <div className="absolute inset-0 bg-red-900 bg-opacity-70 z-30 flex items-center justify-center text-8xl text-white animate-[fadeIn_0.5s]">СТОЛКНОВЕНИЕ!</div>}
             
-            {showInstructions && (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent isMinigameInverted={isMinigameInverted} />
-                </InstructionModal>
-            )}
-
-            {!showInstructions && gameStatus === 'playing' && (
+            {gameStatus === 'playing' && (
             <>
                 <MinigameHUD>
                     <div className="text-left">РАУНД {round}/3</div>

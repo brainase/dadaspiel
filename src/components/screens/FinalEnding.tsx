@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useProfile, useSettings } from '../../context/GameContext';
 import { ALL_MINIGAMES } from '../../data/caseData';
@@ -126,14 +127,14 @@ const DadaEcstasyAnimation: React.FC = () => {
 
 
 export const FinalEnding: React.FC = () => {
-    const { logout } = useProfile();
+    const { confirmLogout } = useProfile();
     const { playSound } = useSettings();
     const [phase, setPhase] = useState(0);
     const [showSkip, setShowSkip] = useState(false);
     
     const handleReset = () => {
         playSound(SoundType.BUTTON_CLICK);
-        logout(); // Используем logout для возврата к выбору профиля
+        confirmLogout(); // Используем confirmLogout для возврата к выбору профиля без подтверждения
     };
 
     const PHASES: { duration: number; component: React.FC, onEnter?: () => void }[] = useMemo(() => [
@@ -155,7 +156,7 @@ export const FinalEnding: React.FC = () => {
                 </div>
             )
         }
-    ], [logout, playSound, handleReset]);
+    ], [confirmLogout, playSound, handleReset]);
 
     useEffect(() => {
         if (phase < PHASES.length - 1) {

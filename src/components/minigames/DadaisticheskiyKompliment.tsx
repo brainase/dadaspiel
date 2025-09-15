@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { DADA_VOCABULARY } from '../../data/wordData';
 import { SoundType } from '../../utils/AudioEngine';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 const DADA_COLORS = ['text-cyan-300', 'text-orange-300', 'text-lime-400', 'text-yellow-300', 'text-pink-500', 'text-fuchsia-400'];
 const DADA_COLOR_MAP: { [key: string]: string } = {
@@ -41,6 +39,7 @@ export const DadaisticheskiyKomplimentWinScreen: React.FC<{ onContinue: () => vo
 export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { addLife, lives } = useSession();
     const { logEvent, playSound } = useSettings();
+    const { isInstructionModalVisible } = useNavigation();
     const containerRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
     const attractors = useRef({ shirota: { x: 20, y: 50 }, glubina: { x: 80, y: 50 } }).current;
@@ -52,7 +51,6 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
     const [winState, setWinState] = useState<DadaWinState | null>(null);
     const [groupColors, setGroupColors] = useState({ shirota: 'text-cyan-300', glubina: 'text-orange-300' });
     const [pulsatingWordIds, setPulsatingWordIds] = useState<number[]>([]);
-    const [showInstructions, setShowInstructions] = useState(true);
     const wordsRef = useRef(words);
     useEffect(() => { wordsRef.current = words; }, [words]);
 
@@ -69,7 +67,7 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
     }, []);
     
     useEffect(() => {
-        if (hasFinished.current || showInstructions) { setPulsatingWordIds([]); return; }
+        if (hasFinished.current || isInstructionModalVisible) { setPulsatingWordIds([]); return; }
         const pulsationInterval = setInterval(() => {
             const currentWords = wordsRef.current;
             const shirotaWords = currentWords.filter(w => w.type === 'shirota');
@@ -79,10 +77,10 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
             setPulsatingWordIds([...pulsatingShirota, ...pulsatingGlubina]);
         }, 2000);
         return () => clearInterval(pulsationInterval);
-    }, [hasFinished.current, showInstructions]);
+    }, [hasFinished.current, isInstructionModalVisible]);
 
     useEffect(() => {
-        if (hasFinished.current || showInstructions) return;
+        if (hasFinished.current || isInstructionModalVisible) return;
         const timer = setInterval(() => {
             setTimeLeft(t => {
                 if (t <= 1) {
@@ -101,7 +99,7 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [lives, addLife, logEvent, showInstructions]);
+    }, [lives, addLife, logEvent, isInstructionModalVisible]);
 
     useGameLoop(useCallback((deltaTime) => {
         if (hasFinished.current) return;
@@ -134,7 +132,7 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
             const newRot = word.rot + word.rotVel * deltaTime;
             return { ...word, pos: { x: newX, y: newY }, vel: finalVel, rot: newRot, scale: 1 };
         }));
-    }, [mousePos, pulsatingWordIds, attractors]), !hasFinished.current && !showInstructions);
+    }, [mousePos, pulsatingWordIds, attractors]), !hasFinished.current && !isInstructionModalVisible);
     
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
         if (containerRef.current) {
@@ -181,9 +179,6 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
         playSound(SoundType.BUTTON_CLICK);
         onWin();
     };
-    
-    const instruction = instructionData['2-3'];
-    const InstructionContent = instruction.content;
 
     return (
         <div 
@@ -195,13 +190,7 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
         >
             {winState && <DadaisticheskiyKomplimentWinScreen onContinue={handleWinContinue} winState={winState} />}
             
-            {showInstructions && (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            )}
-
-            {!showInstructions && <>
+            <>
                 <MinigameHUD>
                     <div className="w-full">
                         <div className="flex justify-between items-center mb-2">
@@ -220,7 +209,7 @@ export const DadaisticheskiyKompliment: React.FC<{ onWin: () => void; onLose: ()
                 <div className="w-full flex-grow relative">
                     {words.map(w => <div key={w.id} className={`absolute p-1 cursor-pointer whitespace-nowrap ${w.type === 'shirota' ? groupColors.shirota : groupColors.glubina}`} style={{ left: `${w.pos.x}%`, top: `${w.pos.y}%`, transform: `translate(-50%, -50%) rotate(${w.rot}deg) scale(${w.scale})`, transition: pulsatingWordIds.includes(w.id) ? 'transform 0.1s' : 'none' }} onClick={() => handleClick(w)}>{w.text}</div>)}
                 </div>
-            </>}
+            </>
         </div>
     );
 };

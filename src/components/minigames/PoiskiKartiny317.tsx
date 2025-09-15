@@ -1,12 +1,11 @@
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { distractorWords } from '../../data/wordData';
-import { useSettings } from '../../context/GameContext';
+import { useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { PixelArt } from '../core/PixelArt';
 import { UNDERPANTS_ART_DATA } from '../../miscArt';
 import { PIXEL_ART_PALETTE } from '../../../characterArt';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
     const getEmbedUrl = (videoUrl: string): string => {
@@ -245,10 +244,10 @@ export const ArtRevealWinScreen: React.FC<{ pisyunImage: React.ReactNode; onCont
 // --- Main Minigame Component ---
 export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { playSound } = useSettings();
+    const { isInstructionModalVisible } = useNavigation();
     
     type GamePhase = 'findNumber' | 'interactPainting' | 'tearPage' | 'flipping' | 'won';
     const [phase, setPhase] = useState<GamePhase>('findNumber');
-    const [showInstructions, setShowInstructions] = useState(true);
     
     const [paintingWords, setPaintingWords] = useState<any[]>([]);
     const [showUnderpants, setShowUnderpants] = useState(true);
@@ -428,9 +427,6 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
         playSound(SoundType.BUTTON_CLICK);
         onWin();
     };
-    
-    const instruction = instructionData['1-3'];
-    const InstructionContent = instruction.content;
 
     return (
         <div className="w-full h-full flex flex-col relative bg-stone-400">
@@ -480,36 +476,27 @@ export const PoiskiKartiny317: React.FC<{ onWin: () => void; onLose: () => void 
                 }
             `}</style>
 
-            {showInstructions && (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            )}
-						
-            {!showInstructions && (
-							<div className="flex-grow relative flex items-center justify-center p-8">
-									{phase === 'findNumber' && <FindTheNumber onFound={handleNumberFound} />}
-									{(phase === 'interactPainting' || phase === 'tearPage') && PaintingComponent}
-									{phase === 'flipping' && !isFlipFinished && (
-											<div className="flipping-container">
-													 <div className={`flipping-page ${isPageFlipped ? 'is-flipped' : ''}`}>
-															<div className="page-side page-front">
-																	<div className="w-48 h-64 bg-stone-200 shadow-lg flex items-center justify-center">
-																			{pageContent}
-																	</div>
-															</div>
-															<div className="page-side page-back">
-																 <ArtTicket pisyunImage={pisyunImage} />
-															</div>
-													</div>
-											</div>
-									)}
-									 {isFlipFinished && (
-											<ArtRevealWinScreen pisyunImage={pisyunImage} onContinue={handleWinContinue} />
-									 )}
-							</div>
-						)}
-            
+				<div className="flex-grow relative flex items-center justify-center p-8">
+                    {phase === 'findNumber' && <FindTheNumber onFound={handleNumberFound} />}
+                    {(phase === 'interactPainting' || phase === 'tearPage') && PaintingComponent}
+                    {phase === 'flipping' && !isFlipFinished && (
+                        <div className="flipping-container">
+                            <div className={`flipping-page ${isPageFlipped ? 'is-flipped' : ''}`}>
+                                <div className="page-side page-front">
+                                    <div className="w-48 h-64 bg-stone-200 shadow-lg flex items-center justify-center">
+                                            {pageContent}
+                                    </div>
+                                </div>
+                                <div className="page-side page-back">
+                                        <ArtTicket pisyunImage={pisyunImage} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                        {isFlipFinished && (
+                            <ArtRevealWinScreen pisyunImage={pisyunImage} onContinue={handleWinContinue} />
+                        )}
+				</div>            
             {showDadaAnimation && <DadaWinAnimation />}
         </div>
     );

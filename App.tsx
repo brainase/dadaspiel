@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { GameScreen } from './types';
+import React, { useEffect, useState } from 'react';
+import { GameScreen, Character } from './types';
 import { GameProvider, useNavigation, useSession, useProfile, useSettings } from './src/context/GameContext';
 import { MusicType, SoundType, startMusic, stopMusic } from './src/utils/AudioEngine';
 
@@ -9,6 +9,9 @@ import { HUD } from './src/components/core/HUD';
 import { IntroScreen } from './src/components/core/IntroScreen';
 import { OutroScreen } from './src/components/core/OutroScreen';
 import { ConfirmationModal } from './src/components/core/ConfirmationModal';
+import { GlitchWinScreen } from './src/components/core/GlitchWinScreen';
+import { InstructionModal } from './src/components/core/InstructionModal';
+import { instructionData } from './src/data/instructionData';
 
 import { ProfileSelectionScreen } from './src/components/screens/ProfileSelectionScreen';
 import { LeaderboardScreen } from './src/components/screens/LeaderboardScreen';
@@ -36,20 +39,53 @@ const getMusicForMinigame = (id: string): MusicType | null => {
     return null; // For games with no bg music, like 3-2 (Pereverni Kalendar)
 }
 
+// Component for the content of the initial welcome/general instructions modal.
+const WelcomeInstructionContent: React.FC<{ character?: Character | null; isMinigameInverted?: boolean }> = () => (
+    <>
+        <p>Добро пожаловать в ДАДАШПИЛЬ!</p>
+        <p className="mt-4">Это абсурдистская игра, состоящая из серии сюрреалистических мини-игр.</p>
+        <p className="mt-4 text-yellow-300"><strong>Управление:</strong></p>
+        <ul className="list-disc list-inside space-y-2 mt-2">
+            <li><strong>Визор (HUD):</strong> Нажмите на три точки (•••) вверху экрана, чтобы закрепить/открепить интерфейс. На десктопе он также появляется при наведении.</li>
+            <li><strong>Интерфейс:</strong> В левой части визора находятся кнопки управления:
+                <ul className="list-disc list-inside ml-4">
+                    <li><span className="text-2xl">🔊/🔇</span> - Включить/выключить звук.</li>
+                    <li><span className="text-2xl">↗️/↙️</span> - Войти/выйти из полноэкранного режима (рекомендуется!).</li>
+                    <li><span className="text-2xl">ℹ️</span> - Показать это окно или правила текущей мини-игры.</li>
+                    <li><span className="text-2xl">🚪</span> - Выйти в меню выбора профиля.</li>
+                </ul>
+            </li>
+            <li><strong>Мини-игры:</strong> Внимательно читайте правила перед каждой игрой. Обычно управление осуществляется с помощью мыши или касания.</li>
+        </ul>
+        <p className="mt-4">Удачи, дадаист!</p>
+    </>
+);
+
 // Главный компонент приложения, который отвечает за отображение нужного экрана.
 const App: React.FC = () => {
     // Получаем необходимые данные и функции из разделенных контекстов.
-    const { screen, setScreen } = useNavigation();
+    const { screen, setScreen, isInstructionModalVisible, showInstructionModal, hideInstructionModal } = useNavigation();
     const { 
-        currentCase, minigameIndex, winMinigame, loseMinigame,
-        isSlowMo, isMinigameInverted, forcedOutro, isAbsurdEdgeBonusRound
+        currentCase, minigameIndex, winMinigame, loseMinigame, character,
+        isSlowMo, isMinigameInverted, forcedOutro, isAbsurdEdgeBonusRound,
+        isGlitchWin
     } = useSession();
-    const { profileToDeleteId, profiles, confirmDeleteProfile, cancelDeleteProfile } = useProfile();
+    const { profileToDeleteId, profiles, confirmDeleteProfile, cancelDeleteProfile, isLogoutConfirmationVisible, confirmLogout, cancelLogout } = useProfile();
     const { debugMode, playSound } = useSettings();
+    const [isInitialLaunch, setIsInitialLaunch] = useState(false);
 
     // Определяем текущую мини-игру и её компонент.
     const currentMinigame = currentCase?.minigames[minigameIndex];
     const MinigameComponent = currentMinigame ? minigameComponentMap[currentMinigame.id] : null;
+
+    // Check for first launch to show welcome instructions
+    useEffect(() => {
+        const hasSeenWelcome = localStorage.getItem('dada-spiel-has-seen-welcome');
+        if (!hasSeenWelcome) {
+            setIsInitialLaunch(true);
+            showInstructionModal();
+        }
+    }, [showInstructionModal]);
 
     // Управление фоновой музыкой
     useEffect(() => {
@@ -75,6 +111,9 @@ const App: React.FC = () => {
         : isMinigameInverted
         ? "СДВИГ РЕАЛЬНОСТИ: ПРАВИЛА ИНВЕРТИРОВАНЫ!"
         : undefined;
+    
+    const InstructionContentComponent = currentMinigame ? instructionData[currentMinigame.id]?.content : WelcomeInstructionContent;
+    const instructionTitle = currentMinigame ? instructionData[currentMinigame.id]?.title : "ДОБРО ПОЖАЛОВАТЬ";
 
     const renderScreen = () => {
         switch (screen) {
@@ -93,7 +132,10 @@ const App: React.FC = () => {
                             title={currentMinigame.name}
                             text={currentMinigame.intro}
                             warning={introWarning}
-                            onContinue={() => setScreen(GameScreen.MINIGAME_PLAY)}
+                            onContinue={() => {
+                                setScreen(GameScreen.MINIGAME_PLAY);
+                                showInstructionModal();
+                            }}
                         />
                     );
                 }
@@ -141,6 +183,8 @@ const App: React.FC = () => {
             <div key={screen} className="screen-content-wrapper">
                 {renderScreen()}
             </div>
+            
+            {isGlitchWin && <GlitchWinScreen />}
 
             {debugMode && screen !== GameScreen.DEBUG_MENU && screen !== GameScreen.DEBUG_ANIMATION_VIEWER && (
                 <button
@@ -150,6 +194,21 @@ const App: React.FC = () => {
                 >
                     АЛАДКИ
                 </button>
+            )}
+
+            {isInstructionModalVisible && !isLogoutConfirmationVisible && InstructionContentComponent && (
+                 <InstructionModal
+                    title={instructionTitle}
+                    onStart={() => {
+                        if (isInitialLaunch) {
+                            localStorage.setItem('dada-spiel-has-seen-welcome', 'true');
+                            setIsInitialLaunch(false);
+                        }
+                        hideInstructionModal();
+                    }}
+                 >
+                    <InstructionContentComponent character={character} isMinigameInverted={isMinigameInverted} />
+                </InstructionModal>
             )}
 
             {profilePendingDeletion && (
@@ -170,6 +229,29 @@ const App: React.FC = () => {
                         playSound(SoundType.BUTTON_CLICK);
                         cancelDeleteProfile();
                     }}
+                    confirmText="УДАЛИТЬ"
+                />
+            )}
+
+            {isLogoutConfirmationVisible && (
+                 <ConfirmationModal
+                    title="ВЫХОД"
+                    message={
+                        <>
+                          <p>Вы уверены, что хотите выйти в главное меню?</p>
+                          <p className="mt-4 text-base text-gray-400">Текущий прогресс сессии (очки) будет сохранён.</p>
+                        </>
+                    }
+                    onConfirm={() => {
+                        playSound(SoundType.BUTTON_CLICK);
+                        confirmLogout();
+                    }}
+                    onCancel={() => {
+                        playSound(SoundType.BUTTON_CLICK);
+                        cancelLogout();
+                    }}
+                    confirmText="ВЫЙТИ"
+                    confirmButtonClass="bg-blue-700 hover:bg-blue-800"
                 />
             )}
         </GameWrapper>

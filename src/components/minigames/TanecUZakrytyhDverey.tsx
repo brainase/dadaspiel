@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { PixelArt } from '../core/PixelArt';
 import { GUARD_ART_DATA, MINI_GUARD_ART } from '../../miscArt';
 import { MINI_CHARACTER_ART_MAP, CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
+import { MinigameHUD } from '../core/MinigameHUD';
 
 // Interfaces and Constants
 interface Icon {
@@ -62,7 +62,7 @@ const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClo
     );
 };
 
-export const TanecUZakrytyhDvereyWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void }> = ({ onContinue, onPlayVideo }) => {
+export const TanecUZakrytyhDvereyWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void; }> = ({ onContinue, onPlayVideo }) => {
     const { playSound } = useSettings();
     useEffect(() => {
         playSound(SoundType.WIN_TANEC);
@@ -159,6 +159,7 @@ const CharacterDisplay = ({ artData, pose, isHit, isDancing, isPlayer }: { artDa
 export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => void; }> = ({ onWin, onLose }) => {
     const { character } = useSession();
     const { playSound } = useSettings();
+    const { isInstructionModalVisible } = useNavigation();
     
     const settings = useMemo(() => {
         const baseSettings = { phaseDuration: 7, maxScore: 15, iconLife: 1.5 };
@@ -173,7 +174,6 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
     }, [character]);
 
     // State
-    const [showInstructions, setShowInstructions] = useState(true);
     const [phase, setPhase] = useState<'intro' | 'player' | 'guard' | 'end'>('intro');
     const [round, setRound] = useState(0); // 0 is intro, 1-4 are game rounds
     const [playerScore, setPlayerScore] = useState(0);
@@ -211,6 +211,12 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
                 return null;
         }
     }, [miniCharArt]);
+
+    useEffect(() => {
+        if (!isInstructionModalVisible) {
+            setRound(1);
+        }
+    }, [isInstructionModalVisible]);
     
     // Phase management
     useEffect(() => {
@@ -285,7 +291,7 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
         setIcons(prev => prev.map(i => ({...i, life: i.life - dtSec})).filter(i => i.life > 0));
         setFeedback(prev => prev.map(f => ({...f, life: f.life - dtSec, y: f.y - 10 * dtSec})).filter(f => f.life > 0));
 
-    }, [phase, status, round, settings.iconLife]), status === 'playing' && !showInstructions);
+    }, [phase, status, round, settings.iconLife]), status === 'playing' && !isInstructionModalVisible);
 
     const handleIconClick = (clickedIcon: Icon) => {
         if (phase === 'intro' || phase === 'end') return;
@@ -401,25 +407,10 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
         return null;
     }
 
-    const handleStart = () => {
-        setShowInstructions(false);
-        setRound(1);
-    }
-    
-    const instruction = instructionData['2-1'];
-    const InstructionContent = instruction.content;
-
     return (
         <div className="w-full h-full relative overflow-hidden">
             <MuseumBackground />
-            
-            {showInstructions ? (
-                <InstructionModal title={instruction.title} onStart={handleStart}>
-                    <InstructionContent />
-                </InstructionModal>
-            ) : (
-                renderGame()
-            )}
+            {!isInstructionModalVisible && renderGame()}
         </div>
     );
 };

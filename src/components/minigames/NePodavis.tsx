@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
 import { NEPODAVIS_HEAD_ART, PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
 import { SoundType } from '../../utils/AudioEngine';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
     const getEmbedUrl = (videoUrl: string): string => {
@@ -92,6 +90,7 @@ const COUGH_PARTICLE_COLORS = ['#ffdd00', '#ff0000', '#00ff00', '#0000ff', '#fff
 export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { character } = useSession();
     const { playSound } = useSettings();
+    const { isInstructionModalVisible } = useNavigation();
     const hasFinished = useRef(false);
     const projectileId = useRef(0);
     const particleId = useRef(0);
@@ -102,7 +101,6 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
     const [status, setStatus] = useState<'playing'|'won'|'lost'>('playing');
     const [projectiles, setProjectiles] = useState<any[]>([]);
     const [hitCount, setHitCount] = useState(0);
-    const [showInstructions, setShowInstructions] = useState(true);
     
     // Игра состоит из двух фаз: 'avoid' (уклонение) и 'recover' (откашливание).
     const [gamePhase, setGamePhase] = useState<'avoid' | 'recover'>('avoid');
@@ -181,7 +179,7 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
             // Анимация частиц кашля.
             setCoughParticles(currentParticles => currentParticles.map(p => ({ ...p, x: p.x + p.vx * dtSec, y: p.y + p.vy * dtSec, vy: p.vy + 40 * dtSec, life: p.life - dtSec })).filter(p => p.life > 0));
         }
-    }, [status, gamePhase, round, roundSettings, onLose, playSound]), status === 'playing' && !showInstructions);
+    }, [status, gamePhase, round, roundSettings, onLose, playSound]), status === 'playing' && !isInstructionModalVisible);
 
     // Клик по летящему объекту для его уничтожения.
     const handleProjectileClick = (e: React.MouseEvent | React.TouchEvent, id: number) => {
@@ -215,9 +213,6 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
         onWin();
     };
 
-    const instruction = instructionData['6-2'];
-    const InstructionContent = instruction.content;
-
     return (
         <div className="w-full h-full pulsing-bg flex flex-col items-center justify-center relative overflow-hidden" onClick={handleRecoverClick} onTouchStart={handleRecoverClick}>
              <style>{`
@@ -230,13 +225,7 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
             {status === 'won' && <NePodavisWinScreen onContinue={handleWinContinue} />}
             {status === 'lost' && <div className="absolute inset-0 bg-red-900/80 z-40 flex items-center justify-center text-5xl">ПОДАВИЛСЯ!</div>}
             
-             {showInstructions && (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            )}
-
-            {!showInstructions && status === 'playing' && <>
+            {!isInstructionModalVisible && status === 'playing' && <>
                 <MinigameHUD>
                     <div className="w-full text-center">
                         <div className="text-2xl mb-2">Раунд {round}/3</div>

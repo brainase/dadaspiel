@@ -15,7 +15,7 @@ export const InstructionModal: React.FC<InstructionModalProps> = ({ title, onSta
           {children}
         </div>
         <button onClick={onStart} className="pixel-button p-4 text-2xl mt-2">
-          НАЧАТЬ
+          ДАДА
         </button>
       </div>
     </div>

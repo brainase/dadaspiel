@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
@@ -7,8 +7,6 @@ import { ROWANBERRY_ART_DATA } from '../../miscArt';
 import { PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 // Video Modal Component
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
@@ -404,6 +402,7 @@ const BonfireTimer: React.FC<{ currentTime: number; maxTime: number; surgeKey: n
 export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { addLife, addScore, character } = useSession();
     const { playSound } = useSettings();
+		const { isInstructionModalVisible } = useNavigation();
 
     const [status, setStatus] = useState<'playing' | 'lost' | 'won'>('playing');
     const MAX_TIME = 10;
@@ -415,7 +414,6 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [surgeKey, setSurgeKey] = useState(0);
     const [floatingScores, setFloatingScores] = useState<any[]>([]);
-    const [showInstructions, setShowInstructions] = useState(true);
 
     const hasFinished = useRef(false);
     const calendarIdCounter = useRef(0);
@@ -443,7 +441,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
 
     // Spawner logic
     useEffect(() => {
-        if (status !== 'playing' || showInstructions) return;
+        if (status !== 'playing' || isInstructionModalVisible) return;
         const spawnCalendars = () => {
             const newCalendars: any[] = [];
             const spawnCount = 2 + Math.floor(Math.random() * 2);
@@ -463,7 +461,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
         spawnCalendars();
         spawnerTimer.current = setInterval(spawnCalendars, 3000);
         return () => { if (spawnerTimer.current) clearInterval(spawnerTimer.current); };
-    }, [status, showInstructions]);
+    }, [status, isInstructionModalVisible]);
     
     const handleGameOverRef = useRef(handleGameOver);
     useEffect(() => { handleGameOverRef.current = handleGameOver; }, [handleGameOver]);
@@ -478,7 +476,7 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
             }
             return newTime;
         });
-    }, [status]), status === 'playing' && !showInstructions);
+    }, [status]), status === 'playing' && !isInstructionModalVisible);
 
     const handleFlip = (id: number) => {
         if (status !== 'playing') return;
@@ -526,9 +524,6 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
     
     const loseEmbers = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({ id: i, style: { left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 2}s`, animationDuration: `${2 + Math.random() * 2}s` } as React.CSSProperties })), []);
     
-    const instruction = instructionData['3-2'];
-    const InstructionContent = instruction.content;
-
     return (
         <div className="w-full h-full flex flex-col items-center p-4 relative overflow-hidden select-none">
              <AutumnNightBackground />
@@ -632,14 +627,8 @@ export const PereverniKalendar: React.FC<{ onWin: () => void; onLose: () => void
                     </div>
                 </div>
             )}
-
-            {showInstructions && (
-                 <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            )}
-            
-            {status === 'playing' && !showInstructions && (
+          
+            {status === 'playing' && (
               <>
                 <MinigameHUD>
                     <div className="w-full text-center text-yellow-300">

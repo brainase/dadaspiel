@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { FEMINITIVES_PAIRS } from '../../data/wordData';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 interface FlyingWord { id: number; text: string; correctText: string; pos: { x: number; y: number }; vel: { x: number; y: number }; isTransformed: boolean; isFadingOut: boolean; }
 interface Particle { id: number; pos: { x: number; y: number }; }
@@ -291,6 +289,7 @@ export const BoitsovskiyKlubFeminitivovWinScreen: React.FC<{ onContinue: () => v
 export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { playSound } = useSettings();
     const { character } = useSession();
+		const { isInstructionModalVisible } = useNavigation();
 
     const settings = useMemo(() => {
         const baseSettings = { survivalTime: 20, wordSpeedMultiplier: 1.0, spawnRate: 0.05 };
@@ -309,7 +308,6 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
     const [particles, setParticles] = useState<Particle[]>([]);
     const [playerHit, setPlayerHit] = useState(false);
     const [status, setStatus] = useState<'playing' | 'won'>('playing');
-    const [showInstructions, setShowInstructions] = useState(true);
     
     const [punishmentClicks, setPunishmentClicks] = useState(0);
     const [egoState, setEgoState] = useState<'pristine' | 'cracked1' | 'cracked2' | 'shattered'>('pristine');
@@ -375,7 +373,7 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
                 }
             }
         }
-    }, [words, onLose, playSound, settings]), status === 'playing' && !showInstructions);
+    }, [words, onLose, playSound, settings]), status === 'playing' && !isInstructionModalVisible);
 
     const handlePunishmentClick = (clickedWord: FlyingWord) => {
         const newPunishmentClicks = punishmentClicks + 1;
@@ -479,21 +477,12 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
         playSound(SoundType.BUTTON_CLICK);
         onWin();
     };
-    
-    const instruction = instructionData['4-2'];
-    const InstructionContent = instruction.content;
 
     return (
         <div ref={gameAreaRef} className="w-full h-full bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden select-none">
             {status === 'won' && <BoitsovskiyKlubFeminitivovWinScreen onContinue={handleWinContinue} />}
-            
-            {showInstructions && (
-                 <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            )}
 
-            {status === 'playing' && !showInstructions && <>
+            {status === 'playing' && <>
                 <style>{`
                     @keyframes flicker { 0%, 100% { opacity: 0; } 50% { opacity: 0.1; } }
                     .flicker { animation: flicker 1.2s infinite steps(1); }

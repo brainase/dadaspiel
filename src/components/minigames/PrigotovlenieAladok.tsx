@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { ALADKI_RECIPES } from '../../data/recipeData';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
     const getEmbedUrl = (videoUrl: string): string => {
@@ -204,7 +202,7 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
     const [cookProgress, setCookProgress] = useState(0);
     const [flipResult, setFlipResult] = useState<null | 'perfect' | 'undercooked' | 'burnt'>(null);
 
-    const [showInstructions, setShowInstructions] = useState(true);
+    const { isInstructionModalVisible } = useNavigation();
     const [feedback, setFeedback] = useState<any[]>([]);
 
     const currentRecipe = ALADKI_RECIPES[round];
@@ -290,7 +288,7 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
         // Update feedback lifetime
         setFeedback(f => f.slice(-5));
 
-    }, [panX, status, currentRecipe, phase, fryingState, currentIngredientIndex, playSound, settings.fallSpeed, handleMistake]), status === 'playing' && !showInstructions);
+    }, [panX, status, currentRecipe, phase, fryingState, currentIngredientIndex, playSound, settings.fallSpeed, handleMistake]), status === 'playing' && !isInstructionModalVisible);
 
     // Check win/loss conditions
     useEffect(() => {
@@ -351,9 +349,6 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
             }
         }, 1500);
     };
-
-    const instruction = instructionData['5-1'];
-    const InstructionContent = instruction.content;
 
     const renderCollectingPhase = () => (
         <>
@@ -458,11 +453,7 @@ export const PrigotovlenieAladok: React.FC<{ onWin: () => void; onLose: () => vo
             {status === 'won' && <AladkiWinScreen onContinue={onWin} />}
             {status === 'lost' && <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center text-5xl">АЛАДКИ ПОДГОРЕЛИ!</div>}
 
-            {showInstructions ? (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            ) : status === 'playing' && (
+            {status === 'playing' && (
                 <>
                     <MinigameHUD>
                         <div className="w-1/2 text-left text-black" style={{ textShadow: '1px 1px 1px #FFF' }}>

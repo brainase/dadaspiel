@@ -6,9 +6,18 @@ interface ConfirmationModalProps {
   message: React.ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
+  confirmText?: string;
+  confirmButtonClass?: string;
 }
 
-export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ title, message, onConfirm, onCancel }) => {
+export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ 
+  title, 
+  message, 
+  onConfirm, 
+  onCancel,
+  confirmText = 'ПОДТВЕРДИТЬ',
+  confirmButtonClass = 'bg-red-800 hover:bg-red-900'
+}) => {
   // To prevent clicks on the modal content from closing it.
   const stopPropagation = (e: React.MouseEvent) => e.stopPropagation();
 
@@ -30,8 +39,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ title, mes
           <button onClick={onCancel} className="pixel-button p-4 text-2xl bg-gray-600 hover:bg-gray-700">
             ОТМЕНА
           </button>
-          <button onClick={onConfirm} className="pixel-button p-4 text-2xl bg-red-800 hover:bg-red-900">
-            УДАЛИТЬ
+          <button onClick={onConfirm} className={`pixel-button p-4 text-2xl ${confirmButtonClass}`}>
+            {confirmText}
           </button>
         </div>
       </div>

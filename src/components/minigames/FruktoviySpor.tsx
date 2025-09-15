@@ -24,12 +24,10 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 import { PixelArt } from '../core/PixelArt';
 import { ORDINARY_PLAYER_ART_DATA, BLACK_PLAYER_ART_DATA, PIXEL_ART_PALETTE } from '../../../characterArt';
 
@@ -166,6 +164,7 @@ const IntegrityBar: React.FC<{ integrity: number }> = ({ integrity }) => {
 const BlackPlayerGame: React.FC<{ onWin: () => void; onLose: () => void; }> = ({ onWin, onLose }) => {
     // --- Состояние и ссылки (State & Refs) ---
     const { playSound } = useSettings();
+		const { isInstructionModalVisible } = useNavigation();
     const gameAreaRef = useRef<HTMLDivElement>(null); // Ссылка на игровую область для получения размеров.
     const hasFinished = useRef(false); // Флаг, чтобы избежать многократного вызова onWin/onLose.
     const itemCounter = useRef(0); // Счетчик для уникальных ID падающих предметов.
@@ -176,7 +175,6 @@ const BlackPlayerGame: React.FC<{ onWin: () => void; onLose: () => void; }> = ({
     const [timeLeft, setTimeLeft] = useState(60); // Таймер выживания.
     const [items, setItems] = useState<any[]>([]); // Массив падающих предметов.
     const [currentRule, setCurrentRule] = useState<any>(null); // Текущее правило от "Хорды".
-    const [showInstructions, setShowInstructions] = useState(true); // Показать/скрыть инструкции.
     const [basketX, setBasketX] = useState(50); // Позиция игрока по оси X в процентах.
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     const [feedback, setFeedback] = useState<any[]>([]); // Состояние для всплывающих индикаторов (+5, -20 и т.д.).
@@ -214,9 +212,9 @@ const BlackPlayerGame: React.FC<{ onWin: () => void; onLose: () => void; }> = ({
 
     // Запускаем смену правил, когда игра начинается.
     useEffect(() => {
-        if (!showInstructions) { generateNewRule(); }
+        if (!isInstructionModalVisible) { generateNewRule(); }
         return () => { if (ruleChangeTimeout.current) clearTimeout(ruleChangeTimeout.current); };
-    }, [generateNewRule, showInstructions]);
+    }, [generateNewRule, isInstructionModalVisible]);
 
     // Обработка поимки предмета.
     const handleCatch = useCallback((item: any) => {
@@ -309,7 +307,7 @@ const BlackPlayerGame: React.FC<{ onWin: () => void; onLose: () => void; }> = ({
         // Обновление жизни для всплывающих текстов обратной связи
         setFeedback(f => f.map(fb => ({ ...fb, y: fb.y - 5 * dtSec, life: fb.life - dtSec })).filter(fb => fb.life > 0));
 
-    }, [status, basketX, handleCatch, CONCEPTS, currentRule, playSound, onLose]), status === 'playing' && !showInstructions);
+    }, [status, basketX, handleCatch, CONCEPTS, currentRule, playSound, onLose]), status === 'playing' && !isInstructionModalVisible);
 
     // Управление игроком.
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
@@ -340,9 +338,6 @@ const BlackPlayerGame: React.FC<{ onWin: () => void; onLose: () => void; }> = ({
     if (status === 'won') return <BlackPlayerBecomingWinScreen onContinue={onWin} onPlayVideo={handlePlayVideo} />;
     if (status === 'lost') return <div className="absolute inset-0 bg-black/90 z-20 flex items-center justify-center text-5xl text-red-700">СЛОМЛЕН.</div>;
     
-    const instruction = instructionData['6-1'];
-    const InstructionContent = instruction.content;
-
     return (
         <div 
             ref={gameAreaRef} 
@@ -362,63 +357,57 @@ const BlackPlayerGame: React.FC<{ onWin: () => void; onLose: () => void; }> = ({
             <div className="absolute inset-0 bg-gradient-to-b from-gray-700 to-gray-900 transition-all duration-500" style={{...degradationStyle, animation: integrity < 50 ? 'background-glitch 0.2s infinite' : 'none'}}></div>
 
             {/* Показываем инструкции или саму игру */}
-            {showInstructions ? (
-                 <InstructionModal title="СТАНОВЛЕНИЕ" onStart={() => setShowInstructions(false)}>
-                    <InstructionContent character={Character.BLACK_PLAYER} />
-                </InstructionModal>
-            ) : (
-                <>
-                    <MinigameHUD>
-                        <div className="w-full">
-                            <div className="flex justify-between items-center mb-2">
-                                <div className="bg-black/50 p-1 rounded">
-                                    <h3 className="text-2xl text-red-500 animate-pulse">{currentRule?.text || 'ГОТОВЬСЯ...'}</h3>
-                                </div>
-                                <div className="bg-black/50 p-1 rounded">
-                                    <span className="text-xl text-white">ВРЕМЯ: {Math.ceil(timeLeft)}</span>
-                                </div>
-                            </div>
-                            <IntegrityBar integrity={integrity} />
-                        </div>
-                    </MinigameHUD>
-                    
-                    <div className="w-full flex-grow relative">
-                        {/* Падающие концепции */}
-                        {items.map(item => (
-                            <div key={item.id} className="absolute text-5xl" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%)` }}>
-                                {item.char}
-                            </div>
-                        ))}
-                        {/* Всплывающий текст обратной связи (+5 / -20) */}
-                        {feedback.map(f => (
-                            <div 
-                                key={f.id} 
-                                className={`absolute font-bold text-3xl pointer-events-none ${f.color}`}
-                                style={{
-                                    left: `${f.x}%`,
-                                    top: `${f.y}%`,
-                                    opacity: f.life,
-                                    transform: 'translate(-50%, -50%)',
-                                    textShadow: '2px 2px 0 #000'
-                                }}
-                            >
-                                {f.text}
-                            </div>
-                        ))}
+						<>
+								<MinigameHUD>
+										<div className="w-full">
+												<div className="flex justify-between items-center mb-2">
+														<div className="bg-black/50 p-1 rounded">
+																<h3 className="text-2xl text-red-500 animate-pulse">{currentRule?.text || 'ГОТОВЬСЯ...'}</h3>
+														</div>
+														<div className="bg-black/50 p-1 rounded">
+																<span className="text-xl text-white">ВРЕМЯ: {Math.ceil(timeLeft)}</span>
+														</div>
+												</div>
+												<IntegrityBar integrity={integrity} />
+										</div>
+								</MinigameHUD>
+								
+								<div className="w-full flex-grow relative">
+										{/* Падающие концепции */}
+										{items.map(item => (
+												<div key={item.id} className="absolute text-5xl" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%)` }}>
+														{item.char}
+												</div>
+										))}
+										{/* Всплывающий текст обратной связи (+5 / -20) */}
+										{feedback.map(f => (
+												<div 
+														key={f.id} 
+														className={`absolute font-bold text-3xl pointer-events-none ${f.color}`}
+														style={{
+																left: `${f.x}%`,
+																top: `${f.y}%`,
+																opacity: f.life,
+																transform: 'translate(-50%, -50%)',
+																textShadow: '2px 2px 0 #000'
+														}}
+												>
+														{f.text}
+												</div>
+										))}
 
-                        {/* "Обычный Игрок", управляемый пользователем */}
-                        <div className="absolute bottom-2 pointer-events-none" style={{ 
-                            left: `${basketX}%`, 
-                            transform: 'translateX(-50%)', 
-                            ...degradationStyle, 
-                            // `transition` только на фильтры, чтобы движение было мгновенным и отзывчивым
-                            transition: 'filter 0.5s, opacity 0.5s' 
-                        }}>
-                             <PixelArt artData={ORDINARY_PLAYER_ART_DATA} palette={PIXEL_ART_PALETTE} pixelSize={4} />
-                        </div>
-                    </div>
-                </>
-            )}
+										{/* "Обычный Игрок", управляемый пользователем */}
+										<div className="absolute bottom-2 pointer-events-none" style={{ 
+												left: `${basketX}%`, 
+												transform: 'translateX(-50%)', 
+												...degradationStyle, 
+												// `transition` только на фильтры, чтобы движение было мгновенным и отзывчивым
+												transition: 'filter 0.5s, opacity 0.5s' 
+										}}>
+												 <PixelArt artData={ORDINARY_PLAYER_ART_DATA} palette={PIXEL_ART_PALETTE} pixelSize={4} />
+										</div>
+								</div>
+						</>
         </div>
     );
 };
@@ -633,6 +622,7 @@ export const FruktoviySporWinScreen: React.FC<{ onContinue: () => void, characte
 const ModifiedFruitArgument: React.FC<{ onWin: () => void; onLose: () => void; character: Character | null }> = ({ onWin, onLose, character }) => {
     // --- Состояние и ссылки (State & Refs) ---
     const { playSound } = useSettings();
+		const { isInstructionModalVisible } = useNavigation();
     const { handleMistake } = useSession();
     const gameAreaRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
@@ -655,7 +645,6 @@ const ModifiedFruitArgument: React.FC<{ onWin: () => void; onLose: () => void; c
     const [timeLeft, setTimeLeft] = useState(settings.survivalTime);
     const [items, setItems] = useState<any[]>([]);
     const [currentRule, setCurrentRule] = useState<any>(null);
-    const [showInstructions, setShowInstructions] = useState(true);
     const [basketX, setBasketX] = useState(50);
     const [isLogicInverted, setIsLogicInverted] = useState(false);
     // Состояние для игры за Сексизма.
@@ -700,13 +689,13 @@ const ModifiedFruitArgument: React.FC<{ onWin: () => void; onLose: () => void; c
     }, [settings.ruleChangeTime, isKanila, isSexism]);
 
     useEffect(() => {
-        if (!showInstructions) { generateNewRule(); }
+        if (!isInstructionModalVisible) { generateNewRule(); }
         return () => { if (ruleChangeTimeout.current) clearTimeout(ruleChangeTimeout.current); };
-    }, [generateNewRule, showInstructions]);
+    }, [generateNewRule, isInstructionModalVisible]);
 
     // Особенность Сексизма: смена визуального стиля игры каждые 12 секунд.
     useEffect(() => {
-        if (isSexism && !showInstructions) {
+        if (isSexism && !isInstructionModalVisible) {
             const changeStyle = () => {
                 const styles = ['default', 'sepia', 'saturated', 'inverted'];
                 setVisualStyle(current => styles[(styles.indexOf(current) + 1) % styles.length]);
@@ -716,7 +705,7 @@ const ModifiedFruitArgument: React.FC<{ onWin: () => void; onLose: () => void; c
             changeStyle();
             return () => { if (styleChangeTimeout.current) clearTimeout(styleChangeTimeout.current); };
         }
-    }, [isSexism, showInstructions]);
+    }, [isSexism, isInstructionModalVisible]);
 
     // Обработка поимки фрукта.
     const handleCatch = useCallback((item: any) => {
@@ -839,7 +828,7 @@ const ModifiedFruitArgument: React.FC<{ onWin: () => void; onLose: () => void; c
             return remainingItems;
         });
 
-    }, [status, settings, basketX, handleCatch, isKanila, currentRule, playSound, onLose, handleMistake, strength]), status === 'playing' && !showInstructions);
+    }, [status, settings, basketX, handleCatch, isKanila, currentRule, playSound, onLose, handleMistake, strength]), status === 'playing' && !isInstructionModalVisible);
 
     // Управление корзиной.
     const handlePointerMove = (e: React.MouseEvent | React.TouchEvent) => {
@@ -863,8 +852,6 @@ const ModifiedFruitArgument: React.FC<{ onWin: () => void; onLose: () => void; c
     if (status === 'won') return <FruktoviySporWinScreen onContinue={onWin} character={character} onPlayVideo={handlePlayVideo} />;
     if (status === 'lost') return <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center text-5xl">СПОР ПРОИГРАН!</div>;
     
-    const instruction = instructionData['6-1'];
-    const InstructionContent = instruction.content;
     const gameName = isKanila ? "ФРУКТОВЫЙ ГЛЮК" : "ЭСТЕТИЧЕСКИЙ ЭТЮД";
 
     // Фон в зависимости от персонажа.
@@ -895,36 +882,30 @@ const ModifiedFruitArgument: React.FC<{ onWin: () => void; onLose: () => void; c
                 </div>
             )}
 
-            {showInstructions ? (
-                 <InstructionModal title={gameName} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent character={character} />
-                </InstructionModal>
-            ) : (
-                <>
-                    <MinigameHUD>
-                        <div className="w-full">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className={`text-xl text-yellow-300 ${isKanila ? 'glitch-text-rule' : 'animate-pulse'}`}>{currentRule?.text}</h3>
-                                <span className="text-xl text-white">ВЫЖИТЬ: {Math.ceil(timeLeft)}</span>
-                            </div>
-                            <ArgumentStrengthBar strength={strength} title="СИЛА АРГУМЕНТА" />
-                        </div>
-                    </MinigameHUD>
+						<>
+								<MinigameHUD>
+										<div className="w-full">
+												<div className="flex justify-between items-center mb-2">
+														<h3 className={`text-xl text-yellow-300 ${isKanila ? 'glitch-text-rule' : 'animate-pulse'}`}>{currentRule?.text}</h3>
+														<span className="text-xl text-white">ВЫЖИТЬ: {Math.ceil(timeLeft)}</span>
+												</div>
+												<ArgumentStrengthBar strength={strength} title="СИЛА АРГУМЕНТА" />
+										</div>
+								</MinigameHUD>
 
-                    <div className="w-full flex-grow relative">
-                        {/* Падающие фрукты и "Ў" */}
-                        {items.map(item => (
-                            <div key={item.id} className="absolute" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%)` }}>
-                                {item.char === 'Ў' ? <span className="text-5xl font-bold text-yellow-300">Ў</span> : <Fruit char={item.char} visualStyle={visualStyle} />}
-                            </div>
-                        ))}
-                        {/* Корзина */}
-                        <div className="absolute bottom-2 pointer-events-none" style={{ left: `${basketX}%`, transform: 'translateX(-50%)' }}>
-                            <Basket visualStyle={visualStyle} />
-                        </div>
-                    </div>
-                </>
-            )}
+								<div className="w-full flex-grow relative">
+										{/* Падающие фрукты и "Ў" */}
+										{items.map(item => (
+												<div key={item.id} className="absolute" style={{ left: `${item.x}%`, top: `${item.y}%`, transform: `translate(-50%, -50%)` }}>
+														{item.char === 'Ў' ? <span className="text-5xl font-bold text-yellow-300">Ў</span> : <Fruit char={item.char} visualStyle={visualStyle} />}
+												</div>
+										))}
+										{/* Корзина */}
+										<div className="absolute bottom-2 pointer-events-none" style={{ left: `${basketX}%`, transform: 'translateX(-50%)' }}>
+												<Basket visualStyle={visualStyle} />
+										</div>
+								</div>
+						</>
         </div>
     );
 };

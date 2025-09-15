@@ -1,12 +1,11 @@
+
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useSettings, useSession } from '../../context/GameContext';
+import { useSettings, useSession, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { generateRoundShapes, ALL_COLORS } from './kvir/shapes';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
     const getEmbedUrl = (videoUrl: string): string => {
@@ -88,6 +87,7 @@ const colorToRgba = (color: string, alpha: number): string => {
 export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { playSound } = useSettings();
     const { character } = useSession();
+    const { isInstructionModalVisible } = useNavigation();
     const [round, setRound] = useState(1);
     const [shapes, setShapes] = useState<any[]>([]);
     const [timeLeft, setTimeLeft] = useState(15);
@@ -101,7 +101,6 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
     const [status, setStatus] = useState<'playing' | 'won'>('playing');
     const containerRef = useRef<HTMLDivElement>(null);
     const hasFinished = useRef(false);
-    const [showInstructions, setShowInstructions] = useState(true);
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
     
     // Состояние для механики Чёрного Игрока
@@ -129,7 +128,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
     }, [round]);
     
     useEffect(() => {
-        if(hasFinished.current || showInstructions) return;
+        if(hasFinished.current || isInstructionModalVisible) return;
         const timer = setTimeout(() => {
             setTimeLeft(t => t - 1);
         }, 1000);
@@ -141,7 +140,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
             }
         }
         return () => clearTimeout(timer);
-    }, [timeLeft, onLose, showInstructions]);
+    }, [timeLeft, onLose, isInstructionModalVisible]);
     
     // Game loop for Round 3 target movement
     useGameLoop(useCallback((deltaTime) => {
@@ -183,7 +182,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
                 }
             };
         }));
-    }, [status, interaction]), isTargetMovementActive && status === 'playing' && !showInstructions);
+    }, [status, interaction]), isTargetMovementActive && status === 'playing' && !isInstructionModalVisible);
     
     // --- Логика Чёрного Игрока ---
     const switchMode = useCallback(() => {
@@ -206,7 +205,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
             ruleChangeTimeout.current = null;
         }
 
-        if (round === 3 && status === 'playing' && character === Character.BLACK_PLAYER && !showInstructions) {
+        if (round === 3 && status === 'playing' && character === Character.BLACK_PLAYER && !isInstructionModalVisible) {
             const initialDuration = 7000 + Math.random() * 2000;
             setRound3Mode('rotate');
             ruleChangeTimeout.current = window.setTimeout(switchMode, initialDuration);
@@ -217,7 +216,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
                 clearTimeout(ruleChangeTimeout.current);
             }
         };
-    }, [round, status, character, switchMode, showInstructions]);
+    }, [round, status, character, switchMode, isInstructionModalVisible]);
 
     const getPointerPosition = (e: React.MouseEvent | React.TouchEvent) => {
         if (!containerRef.current) return { x: 0, y: 0, clientX: 0, clientY: 0 };
@@ -345,9 +344,6 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
         setVideoUrl("https://www.youtube.com/watch?v=l0k6Grdu8OQ");
     };
     
-    const instruction = instructionData['1-2'];
-    const InstructionContent = instruction.content;
-
     const backgroundStyle = useMemo(() => {
         if (shapes.length === 0) {
             return { background: 'linear-gradient(to bottom, #1a202c, #2d3748)' };
@@ -378,14 +374,8 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
         >
             {status === 'won' && <KvirKontrolWinScreen onContinue={handleWinContinue} onPlayVideo={handlePlayVideo} />}
             {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
-            
-            {showInstructions && (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent character={character} />
-                </InstructionModal>
-            )}
 
-            {status === 'playing' && !showInstructions && <>
+            {status === 'playing' && <>
                 <style>{`
                     @keyframes instruction-flash {
                         from { transform: scale(1.1); color: white; }

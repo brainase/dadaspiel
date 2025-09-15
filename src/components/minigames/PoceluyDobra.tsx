@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useSession, useSettings } from '../../context/GameContext';
+import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
 import { CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
 import { PixelArt } from '../core/PixelArt';
 import { SoundType } from '../../utils/AudioEngine';
 import { MinigameHUD } from '../core/MinigameHUD';
-import { InstructionModal } from '../core/InstructionModal';
-import { instructionData } from '../../data/instructionData';
 
 interface Kiss {
     id: number;
@@ -153,6 +151,7 @@ const PixelDobro: React.FC<{ scale: number; isHit: boolean }> = ({ scale, isHit 
 export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isSlowMo?: boolean; }> = ({ onWin, onLose, isSlowMo = false }) => {
     const { character } = useSession();
     const { isMuted, playSound } = useSettings();
+    const { isInstructionModalVisible } = useNavigation();
     const [round, setRound] = useState(1);
     const [timeLeft, setTimeLeft] = useState(15);
     const [dobroX, setDobroX] = useState(80);
@@ -162,7 +161,6 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
     const [particles, setParticles] = useState<Particle[]>([]);
     const [isPlayerHit, setIsPlayerHit] = useState(false);
     const [isDobroHit, setIsDobroHit] = useState(false);
-    const [showInstructions, setShowInstructions] = useState(true);
     
     const hasFinished = useRef(false);
     const kissCounter = useRef(0);
@@ -240,7 +238,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
         // Update particles
         setParticles(p => p.map(particle => ({...particle, x: particle.x + particle.vx * dtSec, y: particle.y + particle.vy * dtSec, life: particle.life - dtSec})).filter(p => p.life > 0));
 
-    }, [status, roundSettings, dobroX, isAdvancingRound, playSound, isSlowMo]), status === 'playing' && !showInstructions);
+    }, [status, roundSettings, dobroX, isAdvancingRound, playSound, isSlowMo]), status === 'playing' && !isInstructionModalVisible);
 
     useEffect(() => {
         if (status !== 'playing' || hasFinished.current || isAdvancingRound) return;
@@ -263,7 +261,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
     }, [dobroX, timeLeft, status, round, onLose, isAdvancingRound]);
 
     const handleParry = () => {
-        if (status !== 'playing' || isAdvancingRound || showInstructions) return;
+        if (status !== 'playing' || isAdvancingRound || isInstructionModalVisible) return;
 
         const parryableKisses = kisses.filter(k => k.x >= PARRY_ZONE_START_X && k.x <= PARRY_ZONE_END_X);
 
@@ -301,9 +299,6 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
 
     const dobroScale = 1 + (80 - dobroX) / 70 * 2.5;
 
-    const instruction = instructionData['5-2'];
-    const InstructionContent = instruction.content;
-
     return (
         <div className="w-full h-full bg-gradient-to-br from-[#d299c2] to-[#fef9d7] flex items-center justify-start p-4 relative overflow-hidden cursor-pointer" onClick={handleParry} onTouchStart={handleParry}>
              <style>{`
@@ -314,13 +309,7 @@ export const PoceluyDobra: React.FC<{ onWin: () => void; onLose: () => void; isS
             {status === 'won' && <PoceluyDobraWinScreen onContinue={handleWinContinue} />}
             {status === 'lost' && <div className="absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center text-5xl text-red-500"><p>ЗАЦЕЛОВАН</p><p className="text-3xl mt-4">(насмерть)</p></div>}
             
-            {showInstructions && (
-                <InstructionModal title={instruction.title} onStart={() => setShowInstructions(false)}>
-                    <InstructionContent />
-                </InstructionModal>
-            )}
-
-            {!showInstructions && status === 'playing' && <>
+            {status === 'playing' && <>
                 <MinigameHUD>
                     <div className="w-full text-center text-rose-800" style={{textShadow: '1px 1px 1px #fff'}}>
                         <p className="text-xl mb-1">Раунд {round}/3</p>
