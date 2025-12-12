@@ -306,8 +306,9 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
     // Background Enemy
     const EnemySprite = () => (
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-100 ${visualState === 'punch_mid' ? 'scale-90 opacity-50 blur-sm' : visualState === 'enemy_attack' ? 'scale-150' : 'scale-100 animate-pulse'}`}>
+            {/* Display the EMOJI of the current word concept */}
             <div className="text-[150px] md:text-[200px] leading-none select-none filter drop-shadow-[0_0_20px_rgba(255,0,0,0.5)]">
-                🧛‍♂️
+                {currentWordData?.emoji || '👹'}
             </div>
         </div>
     );
@@ -320,20 +321,43 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
         return null;
     };
 
+    // --- Dynamic Background Logic ---
+    // Calculate ratio: How much player is winning? 
+    // If Player HP is high and Enemy low -> ratio > 1 (Blue/Green takes over)
+    // If Enemy HP is high -> ratio < 1 (Red takes over)
+    const totalHp = playerHp + enemyHp;
+    const playerRatio = totalHp > 0 ? (playerHp / (settings.playerHp + settings.enemyHp)) * 100 : 50; 
+    // Shift the gradient stop based on advantage.
+    // 50% is neutral. Higher means player advantage (blue pushes red back).
+    // Let's amplify it a bit visually.
+    const gradientStop = 30 + (playerHp / settings.playerHp) * 40; // 30% to 70% range
+
+    const dynamicBgStyle: React.CSSProperties = {
+        background: `linear-gradient(110deg, #1e3a8a ${gradientStop - 10}%, #7f1d1d ${gradientStop + 10}%)`,
+        transition: 'background 0.5s ease-in-out'
+    };
+
+    const flashOverlayStyle: React.CSSProperties = {
+        opacity: visualState === 'punch_mid' ? 0.6 : visualState === 'hurt' ? 0.6 : 0,
+        backgroundColor: visualState === 'punch_mid' ? '#4ade80' : '#ef4444', // Green flash on hit, Red on hurt
+        transition: 'opacity 0.1s'
+    };
+
     return (
-        <div className="w-full h-full bg-slate-900 relative overflow-hidden flex flex-col justify-between p-4 select-none">
+        <div className="w-full h-full relative overflow-hidden flex flex-col justify-between p-4 select-none" style={dynamicBgStyle}>
             <style>{`
                 @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-10px, 10px); } 75% { transform: translate(10px, -10px); } }
                 .screen-shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
                 @keyframes punch-up { 0% { transform: translate(-50%, 100%); } 50% { transform: translate(-50%, -20%); } 100% { transform: translate(-50%, 0); } }
-                @keyframes flash-red { 0%, 100% { background-color: transparent; } 50% { background-color: rgba(255,0,0,0.5); } }
-                .hurt-flash { animation: flash-red 0.3s ease-in-out; }
             `}</style>
 
             {status === 'won' && <BoitsovskiyKlubFeminitivovWinScreen onContinue={handleWinContinue} />}
             {status === 'lost' && <div className="absolute inset-0 bg-red-900/90 z-50 flex items-center justify-center text-6xl font-black text-black">НОКАУТ!</div>}
 
-            <div className={`absolute inset-0 pointer-events-none ${visualState === 'punch_mid' ? 'screen-shake' : ''} ${visualState === 'hurt' ? 'hurt-flash' : ''}`}></div>
+            {/* Flash Effect Layer */}
+            <div className={`absolute inset-0 pointer-events-none z-0`} style={flashOverlayStyle}></div>
+            {/* Shake Effect Layer (Wrapper) */}
+            <div className={`absolute inset-0 pointer-events-none ${visualState === 'punch_mid' || visualState === 'hurt' ? 'screen-shake' : ''}`}></div>
 
             {status === 'playing' && (
                 <>
@@ -344,7 +368,7 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
                     </div>
 
                     {/* Center Stage */}
-                    <div className="flex-grow relative flex items-center justify-center">
+                    <div className="flex-grow relative flex items-center justify-center z-10">
                         <EnemySprite />
                         
                         {/* Word Display */}

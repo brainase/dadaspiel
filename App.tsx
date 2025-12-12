@@ -31,13 +31,15 @@ const getMusicForMinigame = (id: string): MusicType | null => {
     if (id === "1-2") return MusicType.AMBIENT_KVIR;
     if (id === "2-1") return MusicType.AMBIENT_DANCE;
     if (id === "2-3") return MusicType.AMBIENT_ZEN;
-    if (id === "3-1") return MusicType.AMBIENT_STREET;
-    if (["4-1", "4-2"].includes(id)) return MusicType.AMBIENT_FEMINIST_FIGHT;
-    if (id === "5-1") return MusicType.AMBIENT_KITCHEN;
-    if (["5-2", "6-2"].includes(id)) return MusicType.AMBIENT_TENSION;
-    if (id === "6-1") return MusicType.AMBIENT_NATURE;
-    if (id === "6-3") return MusicType.LOOP_VACUUM;
-    return null; // For games with no bg music, like 3-2 (Pereverni Kalendar)
+    if (id === "3-1") return MusicType.AMBIENT_STREET; // Peaceful street ambience
+    if (id === "4-1") return MusicType.AMBIENT_FEMINIST_FIGHT; // Word builder bass
+    if (id === "4-2") return MusicType.FIGHT_CLUB_THEME; // Aggressive Breakbeat for Fight Club
+    if (id === "5-1") return MusicType.AMBIENT_KITCHEN; // Bubbles
+    if (id === "5-2") return MusicType.ROMANTIC_DOBRO; // Cheesy romance
+    if (id === "6-1") return MusicType.FRUIT_ARGUMENT; // Melodic puzzle
+    if (id === "6-2") return MusicType.LOOP_VACUUM; // Modulated vacuum
+    // 6-3 (Draniki) handles its own MP3 music internally in the component
+    return null; 
 }
 
 // Function to get seasonal music type
@@ -110,7 +112,10 @@ const App: React.FC = () => {
             if (musicType !== null) {
                 startMusic(musicType);
             } else {
-                stopMusic();
+                // Если тип не возвращен (например для DranikiShooter 6-3, который сам управляет музыкой), ничего не делаем или останавливаем старую
+                if (currentMinigame.id !== "6-3") {
+                    stopMusic();
+                }
             }
         } else if (screen === GameScreen.PROFILE_SELECTION || screen === GameScreen.CASE_SELECTION || screen === GameScreen.LEADERBOARD) {
             const seasonalMusic = getSeasonalMusic(seasonalEvent);
