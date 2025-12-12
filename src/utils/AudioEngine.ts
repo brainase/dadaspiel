@@ -209,7 +209,7 @@ export const startMusic = (type: MusicType) => {
             
             // Выбираем случайный трек
             const randomTrack = CUSTOM_PLAYLIST[Math.floor(Math.random() * CUSTOM_PLAYLIST.length)];
-            const audioPath = `public/music/${randomTrack}`;
+            const audioPath = `music/${randomTrack}`;
             
             console.log(`AudioEngine: Attempting to play ${audioPath}`);
             const audio = new Audio(audioPath);
