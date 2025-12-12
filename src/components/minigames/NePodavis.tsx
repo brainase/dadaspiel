@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
@@ -44,7 +45,7 @@ const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClo
 
 
 // Экран победы: получение "стрададаховки".
-export const NePodavisWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
+export const NePodavisWinScreen: React.FC<{ onContinue: () => void; character: Character | null }> = ({ onContinue, character }) => {
     const { playSound } = useSettings();
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -57,21 +58,97 @@ export const NePodavisWinScreen: React.FC<{ onContinue: () => void }> = ({ onCon
         setVideoUrl("https://www.youtube.com/watch?v=29p14n_qeN0");
     };
 
+    let content = null;
+
+    // --- KANILA: GONZO SURVIVAL ---
+    if (character === Character.KANILA) {
+        content = (
+            <div
+                onClick={handlePlayVideo}
+                className="w-96 h-60 bg-yellow-200 p-4 pixel-border flex flex-col text-black transform rotate-2 cursor-pointer hover:scale-105 transition-transform relative overflow-hidden"
+                style={{textShadow: 'none'}}
+            >
+                {/* Coffee stains */}
+                <div className="absolute top-[-20px] right-[-20px] w-24 h-24 border-8 border-yellow-700/30 rounded-full"></div>
+                <div className="absolute bottom-[20px] left-[40px] w-16 h-16 border-4 border-yellow-700/20 rounded-full"></div>
+                
+                <h3 className="text-xl text-center font-bold font-mono uppercase border-b-2 border-black pb-2">Сертификат Выжившего</h3>
+                <div className="flex-grow flex flex-col justify-center mt-2 font-mono text-sm space-y-2">
+                    <p>ИМЯ: <strong>КАНИЛА Д.</strong></p>
+                    <p>СТАТУС: <strong>ЖИВОЙ (ВРОДЕ)</strong></p>
+                    <p>ДИАГНОЗ: <strong>ОСТРЫЙ ДАДАИЗМ</strong></p>
+                </div>
+                <div className="absolute bottom-4 right-4 transform -rotate-12 border-4 border-red-600 px-2 py-1 text-red-600 font-black text-xl">
+                    ПРОВЕРЕНО
+                </div>
+            </div>
+        );
+    }
+    // --- SEXISM: CRITIC REVIEW ---
+    else if (character === Character.SEXISM) {
+        content = (
+            <div
+                onClick={handlePlayVideo}
+                className="w-96 h-60 bg-white p-6 border-double border-4 border-gray-300 shadow-2xl flex flex-col text-gray-800 cursor-pointer hover:scale-105 transition-transform"
+                style={{textShadow: 'none', fontFamily: 'serif'}}
+            >
+                <div className="flex justify-between items-start border-b border-gray-300 pb-2 mb-2">
+                    <h3 className="text-2xl font-bold italic text-black">Le Critique</h3>
+                    <div className="text-xs text-gray-500">Vol. 317</div>
+                </div>
+                <div className="flex-grow text-sm italic leading-relaxed">
+                    "Подача была агрессивной, но текстура экзистенциального ужаса... божественна. Послевкусие абсурда остаётся надолго."
+                </div>
+                <div className="mt-2 flex justify-between items-end">
+                    <div className="font-bold">- С. Эванович</div>
+                    <div className="flex text-yellow-500 text-2xl">★★★★★</div>
+                </div>
+            </div>
+        );
+    }
+    // --- BLACK PLAYER: ENTITY REPORT ---
+    else if (character === Character.BLACK_PLAYER) {
+        content = (
+            <div
+                onClick={handlePlayVideo}
+                className="w-96 h-60 bg-black p-4 border-2 border-green-500 flex flex-col text-green-500 cursor-pointer hover:scale-105 transition-transform font-mono"
+                style={{textShadow: '0 0 5px #00ff00'}}
+            >
+                <div className="text-xs mb-4 border-b border-green-900 pb-1">:: SYSTEM_LOG_317 ::</div>
+                <div className="flex-grow space-y-1 text-sm">
+                    <p>{'>'} SCANNING SUBJECT...</p>
+                    <p>{'>'} BIOLOGICAL NEEDS: <span className="text-red-500">NULL</span></p>
+                    <p>{'>'} CHOKE HAZARD: <span className="text-red-500">NEGATIVE</span></p>
+                    <p>{'>'} ABSORPTION RATE: 100%</p>
+                </div>
+                <div className="animate-pulse bg-green-900 text-black text-center font-bold py-1 mt-2">
+                    ASSIMILATION COMPLETE
+                </div>
+            </div>
+        );
+    }
+    // --- DEFAULT ---
+    else {
+        content = (
+            <div
+                onClick={handlePlayVideo}
+                className="w-96 h-60 bg-slate-200 p-4 pixel-border flex flex-col text-black transform rotate-3 cursor-pointer hover:scale-105 transition-transform"
+                style={{textShadow: 'none'}}
+            >
+                <h3 className="text-xl text-center font-bold">Медицинская Стрададаховка</h3>
+                <div className="flex-grow flex items-center justify-between mt-4">
+                    <div className="text-left text-sm space-y-1"><p>Страхователь: <strong>Георгий</strong></p><p>Риски: <strong>Нелепость Бытия</strong></p><p>Покрытие: <strong>До следующего раза</strong></p><p>Франшиза: <strong>Одна жизнь</strong></p></div>
+                    <div className="text-center"><div className="w-28 h-36 border-4 border-red-600 rounded-full flex items-center justify-center text-red-600 text-md font-bold">ДАДА <br/> APPROVED</div></div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <>
             <div className="absolute inset-0 bg-black/80 z-40 flex flex-col items-center justify-center animate-[fadeIn_0.5s]">
                  <h2 className="text-3xl text-yellow-300 mb-8">ВЫ ВЫЖИЛИ!</h2>
-                 <div
-                    onClick={handlePlayVideo}
-                    className="w-96 h-60 bg-slate-200 p-4 pixel-border flex flex-col text-black transform rotate-3 cursor-pointer hover:scale-105 transition-transform"
-                    style={{textShadow: 'none'}}
-                 >
-                     <h3 className="text-xl text-center font-bold">Медицинская Стрададаховка</h3>
-                     <div className="flex-grow flex items-center justify-between mt-4">
-                         <div className="text-left text-sm space-y-1"><p>Страхователь: <strong>Георгий</strong></p><p>Риски: <strong>Нелепость Бытия</strong></p><p>Покрытие: <strong>До следующего раза</strong></p><p>Франшиза: <strong>Одна жизнь</strong></p></div>
-                         <div className="text-center"><div className="w-28 h-36 border-4 border-red-600 rounded-full flex items-center justify-center text-red-600 text-md font-bold">ДАДА <br/> APPROVED</div></div>
-                     </div>
-                 </div>
+                 {content}
                   <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">ПРОХОДИМ</button>
             </div>
             {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
@@ -222,7 +299,7 @@ export const NePodavis: React.FC<{ onWin: () => void; onLose: () => void }> = ({
                 @keyframes recover-shake { 0% { transform: translate(0, 0); } 25% { transform: translate(4px, -4px); } 50% { transform: translate(-4px, 4px); } 75% { transform: translate(4px, 4px); } 100% { transform: translate(0, 0); } } .animate-recover-shake { animation: recover-shake 0.15s infinite; }
                 @keyframes poof { from { transform: translate(0, 0) scale(0.5); opacity: 1; } to { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; } } .particle { animation: poof 0.4s ease-out forwards; }
             `}</style>
-            {status === 'won' && <NePodavisWinScreen onContinue={handleWinContinue} />}
+            {status === 'won' && <NePodavisWinScreen onContinue={handleWinContinue} character={character} />}
             {status === 'lost' && <div className="absolute inset-0 bg-red-900/80 z-40 flex items-center justify-center text-5xl">ПОДАВИЛСЯ!</div>}
             
             {!isInstructionModalVisible && status === 'playing' && <>

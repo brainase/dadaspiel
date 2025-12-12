@@ -62,12 +62,98 @@ const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClo
     );
 };
 
-export const TanecUZakrytyhDvereyWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void; }> = ({ onContinue, onPlayVideo }) => {
+export const TanecUZakrytyhDvereyWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void; character: Character | null }> = ({ onContinue, onPlayVideo, character }) => {
     const { playSound } = useSettings();
     useEffect(() => {
         playSound(SoundType.WIN_TANEC);
     }, [playSound]);
 
+    // --- KANILA: PUNK RAVE ---
+    if (character === Character.KANILA) {
+        return (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-purple-900 overflow-hidden">
+                <style>{`
+                    @keyframes strobe { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+                    @keyframes rave-shake { 0% { transform: translate(0,0) rotate(0deg); } 25% { transform: translate(-5px, 5px) rotate(-5deg); } 75% { transform: translate(5px, -5px) rotate(5deg); } }
+                    .strobe-bg { animation: strobe 0.1s infinite; background: repeating-conic-gradient(#4c1d95 0% 25%, #5b21b6 0% 50%); }
+                    .rave-text { text-shadow: 4px 4px 0 #000; animation: rave-shake 0.2s infinite; color: #fde047; }
+                `}</style>
+                <div className="absolute inset-0 strobe-bg opacity-50"></div>
+                <div className="z-10 flex flex-col items-center">
+                    <div className="mb-8 transform scale-150 animate-[spin_1s_linear_infinite]">
+                         <PixelArt artData={MINI_CHARACTER_ART_MAP[Character.KANILA]} palette={PIXEL_ART_PALETTE} pixelSize={8} />
+                    </div>
+                    <h2 className="text-5xl md:text-6xl font-black rave-text mb-4 text-center">РЕЙВ У ЗАКРЫТЫХ ДВЕРЕЙ</h2>
+                    <p className="text-xl text-white mb-8 bg-black p-2">ВАХТЁРША В ШОКЕ</p>
+                    <div className="flex gap-4">
+                        <button onClick={onPlayVideo} className="pixel-button p-3 text-xl bg-yellow-500 text-black">ВИДЕО-КЛИП</button>
+                        <button onClick={onContinue} className="pixel-button p-3 text-xl bg-green-700">ДАЛЬШЕ</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- SEXISM: THEATRICAL BALLET ---
+    if (character === Character.SEXISM) {
+        const roses = Array.from({length: 20}).map((_, i) => ({
+            id: i, style: { left: `${Math.random()*100}%`, animationDelay: `${Math.random()*5}s`, fontSize: `${2+Math.random()}rem` }
+        }));
+        return (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black overflow-hidden">
+                <style>{`
+                    @keyframes fall-rose { from { transform: translateY(-10vh) rotate(0deg); } to { transform: translateY(110vh) rotate(360deg); } }
+                    .falling-rose { position: absolute; top: -10vh; animation: fall-rose 6s linear infinite; }
+                    .spotlight-mask { background: radial-gradient(circle at center, transparent 150px, black 400px); }
+                `}</style>
+                {roses.map(r => <div key={r.id} className="falling-rose" style={r.style}>🌹</div>)}
+                <div className="absolute inset-0 spotlight-mask pointer-events-none z-20"></div>
+                
+                <div className="z-10 flex flex-col items-center animate-[bounce_3s_infinite]">
+                     <div className="mb-8 transform scale-125">
+                         <PixelArt artData={MINI_CHARACTER_ART_MAP[Character.SEXISM]} palette={PIXEL_ART_PALETTE} pixelSize={8} />
+                    </div>
+                    <h2 className="text-4xl font-serif text-pink-300 italic mb-2 text-center">"Искусство открывает любые двери"</h2>
+                    <p className="text-sm text-gray-400 font-serif mb-8">— Сексизм Эванович</p>
+                    
+                    <div className="flex gap-4 z-30 pointer-events-auto">
+                        <button onClick={onPlayVideo} className="pixel-button p-3 text-xl bg-pink-700 hover:bg-pink-600">ЭТЮД</button>
+                        <button onClick={onContinue} className="pixel-button p-3 text-xl bg-gray-700">БРАВО</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- BLACK PLAYER: VOID RITUAL ---
+    if (character === Character.BLACK_PLAYER) {
+        return (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black overflow-hidden">
+                <style>{`
+                    @keyframes void-pulse { 0% { opacity: 0.2; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.1); } 100% { opacity: 0.2; transform: scale(1); } }
+                    .void-circle { position: absolute; border: 2px solid red; border-radius: 50%; animation: void-pulse 4s infinite; }
+                    .glitch-font { font-family: monospace; letter-spacing: 0.2em; color: #ff0000; text-shadow: 2px 0 blue; }
+                `}</style>
+                <div className="void-circle w-[60vh] h-[60vh]"></div>
+                <div className="void-circle w-[40vh] h-[40vh]" style={{animationDelay: '1s'}}></div>
+                
+                <div className="z-10 flex flex-col items-center filter invert">
+                     <div className="mb-8">
+                         <PixelArt artData={MINI_CHARACTER_ART_MAP[Character.BLACK_PLAYER]} palette={PIXEL_ART_PALETTE} pixelSize={8} />
+                    </div>
+                </div>
+                
+                <h2 className="text-4xl md:text-6xl glitch-font mb-8 text-center z-10 bg-black px-4">ДВЕРЕЙ НЕ СУЩЕСТВУЕТ</h2>
+                
+                <div className="flex gap-4 z-10">
+                    <button onClick={onPlayVideo} className="pixel-button p-3 text-xl bg-red-900 text-white border-red-500 hover:bg-red-800">ИСТОК</button>
+                    <button onClick={onContinue} className="pixel-button p-3 text-xl bg-gray-900 text-white border-gray-600 hover:bg-gray-800">ПРИНЯТЬ</button>
+                </div>
+            </div>
+        );
+    }
+
+    // --- DEFAULT (Fallback) ---
     const notes = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
         id: i,
         char: ['♪', '♫', '♬'][i % 3],
@@ -398,7 +484,7 @@ export const TanecUZakrytyhDverey: React.FC<{ onWin: () => void; onLose: () => v
     if (status === 'won') {
         return (
              <>
-                <TanecUZakrytyhDvereyWinScreen onContinue={onWin} onPlayVideo={() => setVideoUrl("https://www.youtube.com/watch?v=ZyOkyXVPBt4")} />
+                <TanecUZakrytyhDvereyWinScreen onContinue={onWin} onPlayVideo={() => setVideoUrl("https://www.youtube.com/watch?v=ZyOkyXVPBt4")} character={character} />
                 {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
             </>
         )

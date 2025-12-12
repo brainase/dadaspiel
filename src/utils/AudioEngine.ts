@@ -95,16 +95,16 @@ export enum MusicType {
 const CUSTOM_PLAYLIST = [
     'xdm1.mp3',
     'xdm2.mp3',
-		'xdm3.mp3',
-		'xdm4.mp3',
-		'xdm5.mp3',
-		'xdm6.mp3',
-		'xdm7.mp3',
-		'xdm8.mp3',
-		'xdm9.mp3',
-		'xdm10.mp3',
-		'xdm11.mp3',
-		'xdm12.mp3',
+    'xdm3.mp3',
+    'xdm4.mp3',
+    'xdm5.mp3',
+    'xdm6.mp3',
+    'xdm7.mp3',
+    'xdm8.mp3',
+    'xdm9.mp3',
+    'xdm10.mp3',
+    'xdm11.mp3',
+    'xdm12.mp3',
     'xdm13.mp3'
 ];
 

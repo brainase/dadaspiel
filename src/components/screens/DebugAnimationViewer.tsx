@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigation, useSession, useSettings } from '../../context/GameContext';
 import { GameScreen } from '../../../types';
@@ -107,7 +108,7 @@ const videoUrlMap: { [key: string]: string } = {
 
 export const DebugAnimationViewer: React.FC = () => {
     const { animationToView, setAnimationToView, setScreen } = useNavigation();
-    const { character } = useSession();
+    const { character } = useSession(); // Use character from session which respects debug overrides
     const { playSound } = useSettings();
     const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -137,7 +138,11 @@ export const DebugAnimationViewer: React.FC = () => {
          // Добавляем пропсы для особых случаев
         if (baseId === 'dada-kompliment') props.winState = variant as any;
         if (baseId === 'soberi-feminitiv') props.finalWord = "ЧЕЛОВЕЧИЦА";
-        if (baseId === 'zasos-pylesosa') props.charArt = CHARACTER_ART_MAP[character || Character.KANILA];
+        if (baseId === 'zasos-pylesosa') props.character = character;
+        if (baseId === 'naley-shampanskogo') props.character = character;
+        if (baseId === 'tanec-dveri') props.character = character;
+        if (baseId === 'ne-podavis') props.character = character;
+        
         if (baseId === 'otorvi-pisyun') {
             props.pisyunImage = pisyunImages[0];
         }

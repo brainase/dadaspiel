@@ -24,12 +24,124 @@ const PixelVacuum: React.FC<{animationToggle: boolean}> = ({ animationToggle }) 
     )
 }
 
-export const ZasosPylesosaWinScreen: React.FC<{ onContinue: () => void; charArt: string[] }> = ({ onContinue, charArt }) => {
+export const ZasosPylesosaWinScreen: React.FC<{ onContinue: () => void; character: Character | null }> = ({ onContinue, character }) => {
     const { playSound } = useSettings();
     useEffect(() => {
         playSound(SoundType.WIN_PYLESOS);
     }, [playSound]);
+
+    const charArt = CHARACTER_ART_MAP[character || Character.KANILA];
+
+    // --- KANILA WIN: RODEO ---
+    if (character === Character.KANILA) {
+        return (
+            <div className="absolute inset-0 bg-fuchsia-900 z-50 flex flex-col items-center justify-center overflow-hidden">
+                <style>{`
+                    @keyframes rodeo-bounce {
+                        0%, 100% { transform: translateY(0) rotate(0deg); }
+                        25% { transform: translateY(-20px) rotate(-5deg); }
+                        50% { transform: translateY(0) rotate(0deg); }
+                        75% { transform: translateY(-15px) rotate(5deg); }
+                    }
+                    @keyframes speed-lines {
+                        from { transform: translateX(100%); }
+                        to { transform: translateX(-100%); }
+                    }
+                `}</style>
+                {/* Speed lines background */}
+                <div className="absolute inset-0 opacity-20">
+                    {Array.from({length:10}).map((_,i) => (
+                        <div key={i} className="absolute h-2 bg-white w-full" style={{top: `${i*10}%`, animation: `speed-lines 0.5s linear infinite`, animationDelay: `${i*0.1}s`}}></div>
+                    ))}
+                </div>
+
+                <div className="relative" style={{ animation: 'rodeo-bounce 0.6s infinite' }}>
+                    <div className="absolute -top-[100px] left-8 z-10 transform -scale-x-100">
+                         <PixelArt artData={charArt} palette={PIXEL_ART_PALETTE} pixelSize={5} />
+                    </div>
+                    <PixelVacuum animationToggle={true}/>
+                    <div className="absolute top-10 -left-20 text-6xl">💨</div>
+                </div>
+                
+                <h2 className="text-6xl text-yellow-300 font-black mt-16 z-10 animate-pulse" style={{textShadow: '4px 4px 0 #000'}}>УКРОТИТЕЛЬ!</h2>
+                <button onClick={onContinue} className="pixel-button mt-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800">ДАЛЬШЕ</button>
+            </div>
+        );
+    }
+
+    // --- SEXISM WIN: ART INSTALLATION ---
+    if (character === Character.SEXISM) {
+        return (
+            <div className="absolute inset-0 bg-[#fdf6e3] z-50 flex flex-col items-center justify-center overflow-hidden">
+                <style>{`
+                    @keyframes flash-bulb {
+                        0%, 90%, 100% { opacity: 0; }
+                        91% { opacity: 1; background: white; }
+                        95% { opacity: 0; }
+                    }
+                `}</style>
+                <div className="absolute inset-0 pointer-events-none" style={{animation: 'flash-bulb 3s infinite'}}></div>
+                
+                <div className="relative border-[20px] border-[#b8860b] p-12 bg-white shadow-2xl scale-75 md:scale-100">
+                    <PixelVacuum animationToggle={false}/>
+                    <div className="absolute -bottom-16 right-0 bg-white border border-black p-2 shadow-lg transform rotate-2">
+                        <p className="text-black font-serif text-xs">Exponat #6-2</p>
+                        <p className="text-black font-serif font-bold">"Sucking Void"</p>
+                        <p className="text-gray-600 text-[10px]">Mixed Media, 2024</p>
+                    </div>
+                </div>
+
+                <div className="absolute bottom-8 right-8 md:bottom-32 md:right-32 transform scale-x-[-1]">
+                     <PixelArt artData={charArt} palette={PIXEL_ART_PALETTE} pixelSize={5} />
+                </div>
+
+                <h2 className="text-5xl text-[#b8860b] font-serif font-bold mt-16 md:mt-24 z-10 text-center">КОНЦЕПТУАЛЬНО.</h2>
+                <button onClick={onContinue} className="pixel-button mt-8 p-4 text-2xl z-50 bg-[#8b4513] text-white hover:bg-[#a0522d]">ЦЕНИТЬ</button>
+            </div>
+        );
+    }
+
+    // --- BLACK PLAYER WIN: ANNIHILATION ---
+    if (character === Character.BLACK_PLAYER) {
+        return (
+            <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden">
+                <style>{`
+                    @keyframes implode {
+                        0% { transform: scale(1) rotate(0); filter: hue-rotate(0deg); }
+                        50% { transform: scale(0.1) rotate(180deg); filter: hue-rotate(180deg) invert(1); }
+                        60% { transform: scale(0); opacity: 0; }
+                        100% { transform: scale(0); opacity: 0; }
+                    }
+                    @keyframes void-pulse {
+                        0%, 100% { box-shadow: 0 0 50px 20px #ff0000; opacity: 0.5; }
+                        50% { box-shadow: 0 0 100px 50px #ff0000; opacity: 1; }
+                    }
+                `}</style>
+                
+                <div className="relative">
+                    <div style={{ animation: 'implode 3s ease-in-out forwards' }}>
+                        <PixelVacuum animationToggle={true}/>
+                    </div>
+                    {/* The Void appearing after implosion */}
+                    <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-black rounded-full z-10" style={{
+                        transform: 'translate(-50%, -50%)',
+                        animation: 'void-pulse 2s infinite 2s',
+                        opacity: 0,
+                        animationFillMode: 'forwards'
+                    }}></div>
+                </div>
+
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none mix-blend-difference">
+                     <PixelArt artData={charArt} palette={PIXEL_ART_PALETTE} pixelSize={8} />
+                </div>
+
+                <h2 className="text-4xl md:text-6xl text-red-600 font-mono mt-32 z-10 animate-pulse text-center">01000100 01000001</h2>
+                <button onClick={onContinue} className="pixel-button mt-8 p-4 text-2xl z-50 bg-red-900 hover:bg-red-800 border-red-500 text-red-100">ПОГЛОТИТЬ</button>
+            </div>
+        );
+    }
     
+    // Fallback Generic
     return (
         <div className="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden">
             <style>{`
@@ -350,7 +462,7 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
             <ThemedBackground character={character} scrollOffset={scrollOffset} />
 
             {status === 'lost' && <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center text-7xl text-red-500 animate-ping">ЗАСОСАЛО</div>}
-            {status === 'won' && <ZasosPylesosaWinScreen onContinue={handleWinContinue} charArt={charArt} />}
+            {status === 'won' && <ZasosPylesosaWinScreen onContinue={handleWinContinue} character={character} />}
 
             {status === 'playing' && <>
                 <div className="absolute top-16 text-3xl z-40 text-white font-bold" style={{textShadow: '2px 2px 0 #000'}}>

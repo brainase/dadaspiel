@@ -2,10 +2,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { PixelArt } from '../core/PixelArt';
-import { BOTTLE_ART_DATA } from '../../miscArt';
+import { BOTTLE_ART_DATA, GLASS_ART_DATA } from '../../miscArt';
 import { PIXEL_ART_PALETTE } from '../../../characterArt';
 import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
+import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
 
 const VideoModal: React.FC<{ url: string; onClose: () => void }> = ({ url, onClose }) => {
@@ -67,12 +68,123 @@ const AnimatedBottle: React.FC<{ anim: string; position: React.CSSProperties; si
     );
 };
 
-export const NaleyShampanskogoWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void; }> = ({ onContinue, onPlayVideo }) => {
+export const NaleyShampanskogoWinScreen: React.FC<{ onContinue: () => void; onPlayVideo: () => void; character: Character | null }> = ({ onContinue, onPlayVideo, character }) => {
     const { playSound } = useSettings();
     useEffect(() => {
         playSound(SoundType.WIN_SHAMPANSKOE);
     }, [playSound]);
 
+    // --- SEXISM: ART DECO ---
+    if (character === Character.SEXISM) {
+        return (
+            <div className="absolute inset-0 z-30 overflow-hidden flex flex-col items-center justify-center bg-black">
+                <style>{`
+                    .art-deco-frame {
+                        border: 8px solid #d4af37;
+                        outline: 4px solid black;
+                        outline-offset: -12px;
+                        background: radial-gradient(circle, #2a2a2a 0%, #000000 100%);
+                        box-shadow: 0 0 20px #d4af37;
+                    }
+                    @keyframes champagne-fill-glass {
+                        0% { height: 0%; }
+                        100% { height: 75%; }
+                    }
+                    .golden-liquid {
+                        background: linear-gradient(to right, #ffd700, #f0e68c, #daa520);
+                        width: 100%;
+                        bottom: 0;
+                        position: absolute;
+                        animation: champagne-fill-glass 2s ease-out forwards;
+                    }
+                    @keyframes sparkle-rot { 0% { transform: rotate(0deg) scale(0.5); opacity: 0; } 50% { opacity: 1; scale(1); } 100% { transform: rotate(180deg) scale(0); opacity: 0; } }
+                    .sparkle { position: absolute; color: #fff; font-size: 20px; animation: sparkle-rot 1s infinite; }
+                `}</style>
+                
+                {/* Art Deco Background Pattern */}
+                <div className="absolute inset-0 opacity-20" style={{
+                    backgroundImage: 'repeating-linear-gradient(45deg, #d4af37 0, #d4af37 1px, transparent 0, transparent 50%)',
+                    backgroundSize: '30px 30px'
+                }}></div>
+
+                <div className="relative z-10 art-deco-frame p-12 flex flex-col items-center">
+                    {/* Glass */}
+                    <div className="relative w-24 h-32 border-l-4 border-r-4 border-b-4 border-white rounded-b-2xl overflow-hidden mb-4 bg-white/10">
+                        <div className="golden-liquid"></div>
+                        {/* Bubbles in liquid */}
+                        {Array.from({length: 5}).map((_, i) => (
+                            <div key={i} className="absolute bg-white/50 rounded-full w-1 h-1 bottom-0 animate-[rise-pop_1.5s_infinite]" style={{
+                                left: `${20 + Math.random() * 60}%`, animationDelay: `${i * 0.3}s`
+                            }}></div>
+                        ))}
+                    </div>
+                    
+                    <h2 className="text-4xl text-[#d4af37] font-serif tracking-widest mb-2">LE GRAND CRU</h2>
+                    <p className="text-white font-serif italic text-sm">Искусство потребления</p>
+                </div>
+
+                <div className="flex gap-4 mt-12 z-20">
+                    <button onClick={onPlayVideo} className="pixel-button p-3 text-xl bg-[#b8860b] text-black hover:bg-[#cfb53b]">ВИДЕО-АРТ</button>
+                    <button onClick={onContinue} className="pixel-button p-3 text-xl bg-white text-black hover:bg-gray-200">БРАВО</button>
+                </div>
+            </div>
+        );
+    }
+
+    // --- BLACK PLAYER: ANTI-MATTER ---
+    if (character === Character.BLACK_PLAYER) {
+        return (
+            <div className="absolute inset-0 z-30 overflow-hidden flex flex-col items-center justify-center bg-white invert">
+                <style>{`
+                    @keyframes anti-flow {
+                        0% { transform: translateY(0); }
+                        100% { transform: translateY(-100%); }
+                    }
+                    @keyframes glitch-text-black {
+                        0% { transform: skew(0deg); }
+                        20% { transform: skew(-10deg); }
+                        40% { transform: skew(10deg); }
+                        60% { transform: skew(-5deg); }
+                        80% { transform: skew(5deg); }
+                        100% { transform: skew(0deg); }
+                    }
+                    .black-drop {
+                        position: absolute;
+                        background: black;
+                        width: 4px;
+                        height: 20px;
+                        border-radius: 2px;
+                        animation: anti-flow 1s linear infinite;
+                    }
+                `}</style>
+                
+                {/* Rising "Anti-Liquid" Background */}
+                <div className="absolute inset-0 flex justify-around opacity-20">
+                    {Array.from({length: 20}).map((_, i) => (
+                        <div key={i} className="w-1 bg-black h-full" style={{
+                            animation: `anti-flow ${2 + Math.random()}s linear infinite`,
+                            opacity: Math.random()
+                        }}></div>
+                    ))}
+                </div>
+
+                <div className="relative z-10 filter invert scale-150">
+                     <PixelArt artData={BOTTLE_ART_DATA} palette={PIXEL_ART_PALETTE} pixelSize={6} />
+                </div>
+
+                <h2 className="text-5xl font-mono font-bold mt-12 z-10 glitch-text-black text-black tracking-widest bg-white px-2">
+                    ПУСТОТА НАЛИТА
+                </h2>
+                
+                <div className="flex gap-4 mt-8 z-20">
+                    <button onClick={onPlayVideo} className="pixel-button p-3 text-xl border-black text-black bg-transparent hover:bg-black hover:text-white transition-colors">ИСТОК</button>
+                    <button onClick={onContinue} className="pixel-button p-3 text-xl bg-black text-white hover:bg-gray-800">ПРИНЯТЬ</button>
+                </div>
+            </div>
+        );
+    }
+
+    // --- GENERIC / FALLBACK ---
     const bottles = useMemo(() => [
         { anim: 'bottle-celebrate-1 4s ease-in-out infinite', position: { left: '10%', bottom: '10%' }, size: 'text-8xl' },
         { anim: 'bottle-celebrate-2 3.5s ease-in-out infinite', position: { right: '5%', bottom: '15%' }, size: 'text-9xl' },
@@ -249,7 +361,7 @@ const Glass: React.FC<{ fillPercentage: number }> = ({ fillPercentage }) => {
 
 export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { playSound } = useSettings();
-    const { killPlayer } = useSession();
+    const { killPlayer, character } = useSession();
     const { isInstructionModalVisible } = useNavigation();
     // --- Ссылки ---
     const gameAreaRef = useRef<HTMLDivElement>(null);
@@ -484,7 +596,7 @@ export const NaleyShampanskogo: React.FC<{ onWin: () => void; onLose: () => void
             className="w-full h-full cursor-none relative overflow-hidden p-4 flex flex-col items-center"
         >
             <GalleryBackground />
-            {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} onPlayVideo={handlePlayVideo} />}
+            {status === 'won' && <NaleyShampanskogoWinScreen onContinue={handleWinContinue} onPlayVideo={handlePlayVideo} character={character} />}
             {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
             
             {status === 'playing' && <>
