@@ -1,476 +1,298 @@
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
-import { FEMINITIVES_PAIRS } from '../../data/wordData';
+import { FIGHT_CLUB_EASY, FIGHT_CLUB_MEDIUM, FIGHT_CLUB_HARD } from '../../data/wordData';
 import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { SoundType } from '../../utils/AudioEngine';
 import { Character } from '../../../types';
 import { MinigameHUD } from '../core/MinigameHUD';
 
-interface FlyingWord { id: number; text: string; correctText: string; pos: { x: number; y: number }; vel: { x: number; y: number }; isTransformed: boolean; isFadingOut: boolean; }
-interface Particle { id: number; pos: { x: number; y: number }; }
-
-// A single pillar component
-const Pillar: React.FC<{ cracks: number, height: number, isOppressed: boolean }> = ({ cracks, height, isOppressed }) => {
-    const crackColors = ['#ff00ff', '#00ffff', '#ffff00', '#00ff00'];
-    const pillarClasses = `w-24 bg-gray-600 border-2 border-black relative overflow-hidden ${isOppressed ? 'oppressed-pillar' : ''}`;
-    
-    return (
-        <div className={pillarClasses} style={{
-            height: `${height}px`,
-            background: 'linear-gradient(45deg, #6b7280, #4b5563)'
-        }}>
-            {/* Render cracks based on the number of hits */}
-            {Array.from({ length: cracks }).map((_, i) => (
-                <div key={i} className="absolute h-full w-1" style={{
-                    left: `${10 + i * 20 + Math.random() * 10}%`,
-                    top: '-10%',
-                    transform: `rotate(${(Math.random() - 0.5) * 20}deg)`,
-                    background: `linear-gradient(to bottom, transparent, ${crackColors[i % crackColors.length]}, transparent)`
-                }}></div>
-            ))}
-        </div>
-    );
-};
-
-// The new win screen
+// --- Win Screen (Classic Horda Style) ---
 export const BoitsovskiyKlubFeminitivovWinScreen: React.FC<{ onContinue: () => void }> = ({ onContinue }) => {
     const { playSound } = useSettings();
-    const [phase, setPhase] = useState<'rising' | 'attacking' | 'collapsing' | 'victory'>('rising');
-    const [pillars, setPillars] = useState([
-        { id: 1, cracks: 0, height: 200 + Math.random() * 80 },
-        { id: 2, cracks: 0, height: 200 + Math.random() * 80 },
-        { id: 3, cracks: 0, height: 200 + Math.random() * 80 },
-    ]);
+    const [showButton, setShowButton] = useState(false);
 
-    const feminitiveWords = useMemo(() => FEMINITIVES_PAIRS.map(p => p.correct).sort(() => 0.5 - Math.random()), []);
+    const flyingSymbols = useMemo(() => Array.from({ length: 40 }).map((_, i) => ({
+        id: i,
+        symbol: ['♦', '★', '●', '■', '▲', '♀', '👊'][i % 7],
+        style: {
+            position: 'absolute', 
+            top: `${Math.random() * 100}%`, 
+            left: Math.random() > 0.5 ? '-10%' : '110%',
+            '--destination-x': Math.random() > 0.5 ? '120vw' : '-120vw',
+            transform: `scale(${0.5 + Math.random() * 1.5})`, 
+            animation: `fly-across ${3 + Math.random() * 4}s linear infinite`,
+            animationDelay: `${Math.random() * 2}s`,
+            fontSize: `${1 + Math.random() * 3}rem`, 
+            color: ['#ff00ff', '#00ffff', '#ffff00', '#00ff00', '#ff8c00'][i % 5],
+            textShadow: '2px 2px 0 #000'
+        } as React.CSSProperties,
+    })), []);
 
-    const flyingSymbols = useMemo(() => {
-        return Array.from({ length: 30 }).map((_, i) => {
-            const fromLeft = Math.random() > 0.5;
-            const symbol = ['♦', '★', '●', '■', '▲'][i % 5];
-            const color = ['#ff00ff', '#00ffff', '#ffff00', '#00ff00', '#ff8c00'][i % 5];
-            return {
-                id: i,
-                symbol,
-                style: {
-                    position: 'absolute',
-                    top: `${Math.random() * 100}%`,
-                    left: fromLeft ? '-10%' : '110%',
-                    '--destination-x': fromLeft ? '120vw' : '-120vw',
-                    transform: `scale(${1 + Math.random()})`,
-                    animation: `fly-across linear forwards`,
-                    animationDuration: `${5 + Math.random() * 7}s`,
-                    animationDelay: `${Math.random() * 5}s`,
-                    fontSize: '2rem',
-                    color: color,
-                    textShadow: '2px 2px 0 #000',
-                } as React.CSSProperties,
-            };
-        });
-    }, []);
-
-    // Phase management
     useEffect(() => {
-        // Phase 1 -> 2
-        const toAttack = setTimeout(() => {
-            setPhase('attacking');
-        }, 2000);
-        // Phase 2 -> 3
-        const toCollapse = setTimeout(() => {
-            playSound(SoundType.WIN_BOITSOVSKIY);
-            setPhase('collapsing');
-        }, 6000);
-        // Phase 3 -> 4
-        const toVictory = setTimeout(() => {
-             playSound(SoundType.PLAYER_WIN);
-            setPhase('victory');
-        }, 8000);
-
-        return () => {
-            clearTimeout(toAttack);
-            clearTimeout(toCollapse);
-            clearTimeout(toVictory);
-        };
+        const t1 = setTimeout(() => { playSound(SoundType.WIN_BOITSOVSKIY); }, 500);
+        const t2 = setTimeout(() => { playSound(SoundType.PLAYER_WIN); setShowButton(true); }, 2000);
+        return () => { clearTimeout(t1); clearTimeout(t2); };
     }, [playSound]);
-
-    // Attack simulation
-    useEffect(() => {
-        if (phase !== 'attacking') return;
-
-        const attackInterval = setInterval(() => {
-            playSound(SoundType.PLAYER_HIT);
-            setPillars(currentPillars => {
-                const targetPillarIndex = Math.floor(Math.random() * currentPillars.length);
-                return currentPillars.map((p, i) =>
-                    i === targetPillarIndex ? { ...p, cracks: p.cracks + 1 } : p
-                );
-            });
-        }, 400);
-
-        return () => clearInterval(attackInterval);
-    }, [phase, playSound]);
-
-
-    const renderPillars = () => (
-        <div className="absolute bottom-0 w-full flex justify-around items-end">
-            {pillars.map(p => {
-                const isRising = phase === 'rising';
-                const isCollapsing = phase === 'collapsing' || phase === 'victory';
-                const style: React.CSSProperties = {
-                    transition: 'transform 1s ease-out, opacity 1s ease-out',
-                    transform: isCollapsing ? `translateY(100%) rotate(${(Math.random() - 0.5) * 45}deg) scale(0.5)` : isRising ? 'translateY(100%)' : 'translateY(0)',
-                    opacity: isCollapsing ? 0 : 1,
-                };
-                 if (isRising) {
-                    style.animation = `pillar-rise 1.5s cubic-bezier(0.25, 1, 0.5, 1) ${p.id * 0.2}s forwards`;
-                }
-                return <div key={p.id} style={style}><Pillar cracks={p.cracks} height={p.height} isOppressed={phase === 'attacking'} /></div>
-            })}
-        </div>
-    );
-
-    const renderAttackers = () => {
-        if (phase !== 'attacking') return null;
-        return Array.from({ length: 15 }).map((_, i) => {
-            const word = feminitiveWords[i % feminitiveWords.length];
-            const style = {
-                '--start-x': `${Math.random() * 100}vw`,
-                '--end-y': `${60 + Math.random() * 40}vh`,
-                animation: 'fly-down 0.8s ease-in forwards',
-                animationDelay: `${i * 0.25}s`,
-                color: ['#ff00ff', '#00ffff', '#ffff00', '#00ff00'][i % 4]
-            } as React.CSSProperties;
-            return <div key={i} className="absolute top-[-10vh] text-2xl font-bold attacker" style={style}>{word}</div>
-        });
-    };
-
-    const renderDebris = () => {
-        if (phase !== 'collapsing' && phase !== 'victory') return null;
-        return Array.from({ length: 50 }).map((_, i) => {
-             const style = {
-                left: `${40 + Math.random() * 20}%`,
-                '--end-x': `${(Math.random() - 0.5) * 100}vw`,
-                '--end-y': `${(Math.random() - 0.5) * 100}vh`,
-                '--rot': `${(Math.random() - 0.5) * 1080}deg`,
-                animation: 'fly-out 2s cubic-bezier(0.1, 0.7, 0.3, 1) forwards',
-                backgroundColor: ['#ff00ff', '#00ffff', '#ffff00', '#00ff00', '#6b7280'][i % 5]
-            } as React.CSSProperties;
-            return <div key={i} className="absolute bottom-0 w-4 h-4 debris" style={style}></div>
-        });
-    }
 
     return (
         <div className="absolute inset-0 bg-black z-40 flex flex-col items-center justify-center overflow-hidden">
             <style>{`
-                @keyframes pillar-rise {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
-                }
-                @keyframes pillar-oppressive-pulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.02); }
-                }
-                @keyframes pillar-oppressive-glitch {
-                    0% { transform: translate(0,0) skew(0,0); }
-                    25% { transform: translate(-3px, 1px) skew(-1deg, 0.5deg); }
-                    50% { transform: translate(0,0) skew(0,0); }
-                    75% { transform: translate(3px, -1px) skew(1deg, -0.5deg); }
-                    100% { transform: translate(0,0) skew(0,0); }
-                }
-                .oppressed-pillar {
-                    animation: pillar-oppressive-pulse 1.5s ease-in-out infinite, pillar-oppressive-glitch 0.3s linear infinite;
-                }
-                @keyframes fly-down {
-                    from { transform: translateY(0); opacity: 1; }
-                    to { transform: translateY(var(--end-y)); opacity: 0; }
-                }
-                .attacker { position: absolute; left: var(--start-x); }
-                @keyframes fly-out {
-                    from { transform: translateY(0) rotate(0); opacity: 1; }
-                    to { transform: translate(var(--end-x), var(--end-y)) rotate(var(--rot)); opacity: 0; }
-                }
-                .debris { position: absolute; }
-                
-                @keyframes horda-slam-and-shake {
-                    0% { opacity: 0; letter-spacing: 2rem; transform: scale(3) rotate(-10deg); }
-                    80% { opacity: 1; letter-spacing: normal; transform: scale(1) rotate(0); }
-                    85% { transform: translate(-4px, 2px) rotate(-1deg); }
-                    90% { transform: translate(4px, -2px) rotate(1deg); }
-                    95% { transform: translate(-2px, -2px) rotate(0deg); }
-                    100% { transform: translate(0, 0); }
-                }
-                .horda-final-text {
-                    font-smoothing: none;
-                    -webkit-font-smoothing: none;
-                    text-shadow: 4px 4px 0px #000;
-                    animation: horda-slam-and-shake 1.8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
-                    color: #ffff00;
-                }
-                .horda-friend {
-                    position: absolute;
-                    font-size: 2rem;
-                    color: #ff00ff;
-                    text-shadow: 2px 2px 0px #000;
-                    animation: friend-jitter 0.3s infinite, friend-appear 1s forwards;
-                    opacity: 0;
-                    font-smoothing: none;
-                    -webkit-font-smoothing: none;
-                }
-                @keyframes friend-jitter {
-                    0% { transform: translate(0,0); }
-                    25% { transform: translate(-2px, 2px); }
-                    50% { transform: translate(2px, -2px); }
-                    75% { transform: translate(-2px, -2px); }
-                    100% { transform: translate(2px, 2px); }
-                }
-                @keyframes friend-appear {
-                    from { opacity: 0; transform: scale(0); }
-                    to { opacity: 1; transform: scale(1); }
-                }
-                .bg-animate {
-                    background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff8c00);
-                    background-size: 200% 200%;
-                    animation: bg-pan 16s ease infinite;
-                    opacity: ${phase === 'collapsing' || phase === 'victory' ? 0.6 : 0};
-                    transition: opacity 2s;
-                }
-                @keyframes bg-pan {
-                    0%{background-position:0% 50%}
-                    50%{background-position:100% 50%}
-                    100%{background-position:0% 50%}
-                }
-                @keyframes fly-across {
-                    to { transform: translateX(var(--destination-x)) rotate(720deg); }
-                }
-                @keyframes button-fade-in {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
+                @keyframes fly-across { to { transform: translateX(var(--destination-x)) rotate(720deg); } }
+                @keyframes horda-shake { 0% { opacity: 0; transform: scale(3); } 80% { opacity: 1; transform: scale(1); } 100% { transform: scale(1); } }
+                .horda-final-text { animation: horda-shake 0.8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards; text-shadow: 6px 6px 0 #000; color: #ffff00; }
+                .bg-animate { background: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff8c00); background-size: 200% 200%; animation: bg-pan 4s ease infinite; opacity: 0.4; }
+                @keyframes bg-pan { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
             `}</style>
+            <div className="absolute inset-0 bg-animate"></div>
+            {flyingSymbols.map(s => <div key={s.id} style={s.style}>{s.symbol}</div>)}
             
-            {/* Animation Layer */}
-            <div className="absolute inset-0 z-10">
-                <div className="absolute inset-0 bg-animate"></div>
-                 {phase === 'victory' && flyingSymbols.map(s => (
-                    <div key={s.id} style={s.style}>{s.symbol}</div>
-                ))}
-                {renderPillars()}
-                {renderAttackers()}
-                {renderDebris()}
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
+                <h2 className="text-7xl md:text-9xl font-black horda-final-text mb-16 tracking-tighter">ХОРДА!</h2>
+                {showButton && (
+                    <button onClick={onContinue} className="pixel-button p-4 text-2xl bg-green-700 animate-[fadeIn_0.5s_forwards]">ПРОХОДИМ</button>
+                )}
             </div>
-            
-            {/* UI Layer */}
-            {phase === 'victory' && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-                    <div className="relative mb-24">
-                        <h2 className="text-6xl font-black horda-final-text">
-                            ХОРДА!
-                        </h2>
-                        <div className="horda-friend" style={{ top: '-5rem', left: '-5rem', animationDelay: '0.2s' }}>ДА!</div>
-                        <div className="horda-friend" style={{ top: '-3rem', right: '-6rem', animationDelay: '0.4s' }}>ДА!</div>
-                        <div className="horda-friend" style={{ bottom: '-5rem', left: '2rem', animationDelay: '0.6s' }}>ДА!</div>
-                        <div className="horda-friend" style={{ bottom: '0rem', right: '-5rem', animationDelay: '0.8s' }}>ДА!</div>
-                        <div className="horda-friend" style={{ bottom: '-4rem', right: '4rem', transform: 'rotate(15deg)', animationDelay: '1.0s' }}>ДА!</div>
-                    </div>
-                    <button 
-                        onClick={onContinue} 
-                        className="pixel-button absolute bottom-8 p-4 text-2xl bg-green-700" 
-                        style={{ animation: 'button-fade-in 1s 1.5s ease-out forwards', opacity: 0 }}
-                    >
-                        ПРОХОДИМ
-                    </button>
-                </div>
-            )}
         </div>
     );
 };
 
+// --- FIGHTING GAME COMPONENTS ---
+
+const HealthBar: React.FC<{ hp: number, maxHp: number, isPlayer?: boolean, name: string }> = ({ hp, maxHp, isPlayer, name }) => {
+    const percent = Math.max(0, (hp / maxHp) * 100);
+    return (
+        <div className={`flex flex-col w-full max-w-md ${isPlayer ? 'items-start' : 'items-end'}`}>
+            <span className="text-yellow-300 font-bold text-lg mb-1">{name}</span>
+            <div className={`w-full h-6 bg-gray-900 border-2 border-white relative ${isPlayer ? '' : 'flex justify-end'}`}>
+                <div 
+                    className={`h-full transition-all duration-200 ${isPlayer ? 'bg-green-500' : 'bg-red-600'}`}
+                    style={{ width: `${percent}%` }}
+                ></div>
+            </div>
+        </div>
+    );
+};
+
+const FistButton: React.FC<{ suffix: string, onClick: () => void, disabled: boolean, isChaos?: boolean }> = ({ suffix, onClick, disabled, isChaos }) => (
+    <button 
+        onClick={onClick} 
+        disabled={disabled}
+        className={`pixel-button w-24 h-24 md:w-32 md:h-32 flex items-center justify-center text-xl md:text-3xl font-bold transition-transform active:scale-90 
+        ${disabled ? 'opacity-50 cursor-not-allowed' : isChaos ? 'bg-purple-600 hover:bg-purple-500 animate-pulse border-yellow-400 border-4' : 'hover:bg-gray-600 hover:scale-105'}`}
+        style={isChaos ? { boxShadow: '0 0 15px #a855f7' } : {}}
+    >
+        {suffix}
+    </button>
+);
+
+const ImpactEffect: React.FC<{ text: string, type: 'hit' | 'miss' | 'chaos' }> = ({ text, type }) => (
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none w-full flex justify-center items-center">
+        <style>{`
+            @keyframes impact-pop { 
+                0% { transform: scale(0.2); opacity: 0; } 
+                50% { transform: scale(1.2); opacity: 1; } 
+                100% { transform: scale(1); opacity: 0; } 
+            }
+        `}</style>
+        <div 
+            className={`font-black whitespace-nowrap text-center px-4 py-2 ${type === 'hit' ? 'text-green-400' : type === 'chaos' ? 'text-purple-400' : 'text-red-500'}`}
+            // Dynamic text sizing based on length to keep it visible
+            style={{ 
+                animation: 'impact-pop 0.6s ease-out forwards', 
+                textShadow: '4px 4px 0 #000, -2px -2px 0 #000', 
+                backgroundColor: 'rgba(0,0,0,0.8)',
+                border: '4px solid white',
+                fontSize: text.length > 10 ? '2rem' : '4rem', // Smaller font for long words like 'ПСИХОЛОГИНЯ'
+                lineHeight: '1.1'
+            }}
+        >
+            {text}
+        </div>
+    </div>
+);
+
+// Helper to generate nonsense suffix
+const generateChaosSuffix = () => {
+    const chars = "АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЩЫЭЮЯ";
+    const len = 2 + Math.floor(Math.random() * 3); // 2-4 chars
+    let res = "-";
+    for(let i=0; i<len; i++) res += chars[Math.floor(Math.random() * chars.length)];
+    return res;
+};
 
 export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     const { playSound } = useSettings();
     const { character } = useSession();
-		const { isInstructionModalVisible } = useNavigation();
+    const { isInstructionModalVisible } = useNavigation();
 
+    // Game Settings
     const settings = useMemo(() => {
-        const baseSettings = { survivalTime: 20, wordSpeedMultiplier: 1.0, spawnRate: 0.05 };
-        switch(character) {
-            case Character.KANILA: // Easy
-                return { survivalTime: 25, wordSpeedMultiplier: 0.8, spawnRate: 0.04 };
-            case Character.BLACK_PLAYER: // Hard
-                return { survivalTime: 18, wordSpeedMultiplier: 1.25, spawnRate: 0.065 };
-            default: // Medium (Sexism)
-                return baseSettings;
-        }
+        let reactionTime = 3000;
+        let enemyHp = 10;
+        if (character === Character.KANILA) { reactionTime = 3500; enemyHp = 8; } // Easy
+        if (character === Character.BLACK_PLAYER) { reactionTime = 2000; enemyHp = 15; } // Hard
+        return { reactionTime, enemyHp, playerHp: 3 };
     }, [character]);
 
-    const [timeLeft, setTimeLeft] = useState(settings.survivalTime);
-    const [words, setWords] = useState<FlyingWord[]>([]);
-    const [particles, setParticles] = useState<Particle[]>([]);
-    const [playerHit, setPlayerHit] = useState(false);
-    const [status, setStatus] = useState<'playing' | 'won'>('playing');
+    // State
+    const [status, setStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+    const [enemyHp, setEnemyHp] = useState(settings.enemyHp);
+    const [playerHp, setPlayerHp] = useState(settings.playerHp);
+    const [timer, setTimer] = useState(settings.reactionTime);
+    const [currentWordData, setCurrentWordData] = useState<any>(null);
+    const [options, setOptions] = useState<{text: string, isChaos: boolean}[]>([]);
+    const [visualState, setVisualState] = useState<'idle' | 'punch_left' | 'punch_right' | 'punch_mid' | 'hurt' | 'enemy_attack'>('idle');
+    const [impact, setImpact] = useState<{ text: string, type: 'hit' | 'miss' | 'chaos' } | null>(null);
     
-    const [punishmentClicks, setPunishmentClicks] = useState(0);
-    const [egoState, setEgoState] = useState<'pristine' | 'cracked1' | 'cracked2' | 'shattered'>('pristine');
-
+    // Chaos Button Logic
+    const [chaosButtonUsed, setChaosButtonUsed] = useState(false);
+    const [roundCount, setRoundCount] = useState(0);
+    
     const hasFinished = useRef(false);
-    const wordIdCounter = useRef(0);
-    const particleIdCounter = useRef(0);
-    const gameAreaRef = useRef<HTMLDivElement>(null);
-    
-    // Reset timer when settings change
-    useEffect(() => {
-        setTimeLeft(settings.survivalTime);
-    }, [settings.survivalTime]);
 
-    // Основной игровой цикл
-    useGameLoop(useCallback((deltaTime) => {
+    // Prepare Round
+    const startRound = useCallback(() => {
         if (hasFinished.current) return;
         
-        // Таймер на выживание
-        setTimeLeft(t => {
-            const newTime = t - deltaTime / 1000;
+        let pool: any[] = [];
+        const roll = Math.random();
+
+        // Difficulty balancing based on character
+        if (character === Character.KANILA) {
+            // 90% Easy, 10% Hard
+            pool = roll < 0.9 ? FIGHT_CLUB_EASY : FIGHT_CLUB_HARD;
+        } else if (character === Character.SEXISM) {
+            // 50% Medium, 50% Hard
+            pool = roll < 0.5 ? FIGHT_CLUB_MEDIUM : FIGHT_CLUB_HARD;
+        } else if (character === Character.BLACK_PLAYER) {
+            // 100% Hard/Absurd
+            pool = FIGHT_CLUB_HARD;
+        } else {
+            pool = FIGHT_CLUB_MEDIUM; // Fallback
+        }
+
+        const data = pool[Math.floor(Math.random() * pool.length)];
+        setCurrentWordData(data);
+        
+        // Options generation
+        let currentOptions = [
+            { text: data.correct, isChaos: false },
+            { text: data.traps[0], isChaos: false },
+            { text: data.traps[1] || data.traps[0], isChaos: false }
+        ];
+
+        // Check if Chaos Button should appear (random chance if not used yet)
+        if (!chaosButtonUsed && Math.random() < 0.2 + (roundCount * 0.05)) {
+            const chaosSuffix = generateChaosSuffix();
+            const trapIndex = 1 + Math.floor(Math.random() * 2); // index 1 or 2
+            currentOptions[trapIndex] = { text: chaosSuffix, isChaos: true };
+        }
+
+        // Shuffle options
+        currentOptions = currentOptions.sort(() => 0.5 - Math.random());
+        setOptions(currentOptions);
+        
+        setTimer(settings.reactionTime);
+        setVisualState('idle');
+        setImpact(null);
+        setRoundCount(r => r + 1);
+    }, [settings.reactionTime, character, chaosButtonUsed, roundCount]);
+
+    // Initial Start
+    useEffect(() => {
+        if (!isInstructionModalVisible && status === 'playing' && !currentWordData) {
+            startRound();
+        }
+    }, [isInstructionModalVisible, status, startRound, currentWordData]);
+
+    // Game Loop (Timer)
+    useGameLoop((deltaTime) => {
+        if (status !== 'playing' || hasFinished.current || visualState !== 'idle' || isInstructionModalVisible) return;
+
+        setTimer(t => {
+            const newTime = t - deltaTime;
             if (newTime <= 0) {
-                if (!hasFinished.current) {
-                    hasFinished.current = true;
-                    setStatus('won');
-                }
+                handlePlayerMiss(true); // Time out = miss
                 return 0;
             }
             return newTime;
         });
+    }, status === 'playing' && !isInstructionModalVisible);
 
-        // Случайное появление новых слов
-        if (Math.random() < settings.spawnRate) {
-            const side = Math.floor(Math.random() * 4); // 0:left, 1:right, 2:top, 3:bottom
-            const pair = FEMINITIVES_PAIRS[Math.floor(Math.random() * FEMINITIVES_PAIRS.length)];
-            let pos, vel;
-            const baseSpeed = 10 * settings.wordSpeedMultiplier;
-            const randomSpeed = 5 * settings.wordSpeedMultiplier;
-            switch(side) {
-                case 0: pos = { x: -10, y: Math.random() * 100 }; vel = { x: baseSpeed + Math.random() * randomSpeed, y: (Math.random() - 0.5) * 10 }; break;
-                case 1: pos = { x: 110, y: Math.random() * 100 }; vel = { x: -baseSpeed - Math.random() * randomSpeed, y: (Math.random() - 0.5) * 10 }; break;
-                case 2: pos = { x: Math.random() * 100, y: -10 }; vel = { y: baseSpeed + Math.random() * randomSpeed, x: (Math.random() - 0.5) * 10 }; break;
-                default: pos = { x: Math.random() * 100, y: 110 }; vel = { y: -baseSpeed - Math.random() * randomSpeed, x: (Math.random() - 0.5) * 10 }; break;
-            }
-            setWords(w => [...w, { id: wordIdCounter.current++, text: pair.incorrect, correctText: pair.correct, pos, vel, isTransformed: false, isFadingOut: false }]);
-        }
+    const handlePlayerHit = (option: { text: string, isChaos: boolean }) => {
+        if (visualState !== 'idle') return;
 
-        // Движение слов
-        setWords(ws => ws.map(w => ({ ...w, pos: { x: w.pos.x + w.vel.x * (deltaTime / 1000), y: w.pos.y + w.vel.y * (deltaTime / 1000) } })).filter(w => !w.isFadingOut));
-
-        // Проверка столкновения с игроком (невидимая зона в центре)
-        if (gameAreaRef.current) {
-            const playerRect = { x: 50, y: 50, width: 20, height: 10 }; // Центральная зона
-            for (const word of words) {
-                if (!word.isTransformed && word.pos.x > playerRect.x - playerRect.width / 2 && word.pos.x < playerRect.x + playerRect.width / 2 && word.pos.y > playerRect.y - playerRect.height / 2 && word.pos.y < playerRect.y + playerRect.height / 2) {
-                    // Если "неправильное" слово долетело до центра, засчитываем поражение
-                    if (!hasFinished.current) {
-                        playSound(SoundType.PLAYER_HIT);
-                        hasFinished.current = true;
-                        setPlayerHit(true);
-                        setTimeout(onLose, 2000);
-                    }
-                }
-            }
-        }
-    }, [words, onLose, playSound, settings]), status === 'playing' && !isInstructionModalVisible);
-
-    const handlePunishmentClick = (clickedWord: FlyingWord) => {
-        const newPunishmentClicks = punishmentClicks + 1;
-        setPunishmentClicks(newPunishmentClicks);
-        
-        playSound(SoundType.PUNISHMENT_CLICK);
-
-        if (newPunishmentClicks === 1) {
-            // Revert word to incorrect form and shake ego text
-            setWords(ws => ws.map(w => w.id === clickedWord.id ? { 
-                ...w, 
-                isTransformed: false, 
-                vel: { x: clickedWord.vel.x * -0.5, y: clickedWord.vel.y * -0.5 }
-            } : w));
-            setEgoState('cracked1');
-        } else if (newPunishmentClicks === 2) {
-            // Spawn a wave of new words
-            const waveWords: FlyingWord[] = [];
-            for (let i = 0; i < 5; i++) {
-                const side = Math.floor(Math.random() * 4);
-                const pair = FEMINITIVES_PAIRS[Math.floor(Math.random() * FEMINITIVES_PAIRS.length)];
-                let pos, vel;
-                switch(side) {
-                    case 0: pos = { x: -10, y: Math.random() * 100 }; vel = { x: 10 + Math.random() * 5, y: (Math.random() - 0.5) * 10 }; break;
-                    case 1: pos = { x: 110, y: Math.random() * 100 }; vel = { x: -10 - Math.random() * 5, y: (Math.random() - 0.5) * 10 }; break;
-                    case 2: pos = { x: Math.random() * 100, y: -10 }; vel = { y: 10 + Math.random() * 5, x: (Math.random() - 0.5) * 10 }; break;
-                    default: pos = { x: Math.random() * 100, y: 110 }; vel = { y: -10 - Math.random() * 5, x: (Math.random() - 0.5) * 10 }; break;
-                }
-                waveWords.push({ id: wordIdCounter.current++, text: pair.incorrect, correctText: pair.correct, pos, vel, isTransformed: false, isFadingOut: false });
-            }
-            setWords(ws => [...ws, ...waveWords]);
-            setEgoState('cracked2');
-        } else if (newPunishmentClicks >= 3) {
-            // Shatter and lose
-            setEgoState('shattered');
-            if (!hasFinished.current) {
-                hasFinished.current = true;
-                setTimeout(onLose, 1500); // Wait for shatter animation
-            }
-        }
-    };
-
-    // Обработчик клика по слову
-    const handleWordClick = (id: number) => {
-        if (hasFinished.current) return;
-        const wordIndex = words.findIndex(w => w.id === id);
-        if (wordIndex === -1) return;
-
-        const word = words[wordIndex];
-
-        if (word.isTransformed) {
-            handlePunishmentClick(word);
-        } else {
+        if (option.isChaos) {
+            // CHAOS BUTTON EFFECT
+            setChaosButtonUsed(true);
             playSound(SoundType.TRANSFORM_SUCCESS);
-            const newParticles: Particle[] = [];
-            for (let i = 0; i < 8; i++) newParticles.push({ id: particleIdCounter.current++, pos: word.pos });
-            setParticles(p => [...p, ...newParticles]);
-            setTimeout(() => setParticles(p => p.filter(particle => !newParticles.some(np => np.id === particle.id))), 500);
+            
+            if (character === Character.KANILA) {
+                // Instant Win
+                setImpact({ text: 'ФАТАЛИТИ!', type: 'chaos' });
+                hasFinished.current = true;
+                setTimeout(() => setStatus('won'), 1000);
+            } else if (character === Character.SEXISM) {
+                // Enemy Heals (More words)
+                setImpact({ text: 'БОЛЬШЕ СЛОВ!', type: 'miss' });
+                setEnemyHp(h => h + 5); // Add HP
+                setTimeout(startRound, 1000);
+            } else if (character === Character.BLACK_PLAYER) {
+                // Instant Loss
+                setImpact({ text: 'САМОЛИКВИДАЦИЯ', type: 'miss' });
+                hasFinished.current = true;
+                setTimeout(() => {
+                    setStatus('lost');
+                    onLose();
+                }, 1000);
+            }
+            return;
+        }
 
-            // "Превращаем" слово в правильный феминитив и отправляем его лететь обратно
-            setWords(ws => ws.map(w => w.id === id ? { ...w, isTransformed: true, vel: {x: w.vel.x * -1.5, y: w.vel.y * -1.5} } : w));
-            // Через 1.5 секунды удаляем слово
-            setTimeout(() => {
-                setWords(ws => ws.map(w => w.id === id ? { ...w, isFadingOut: true } : w));
-            }, 1500);
+        if (option.text === currentWordData.correct) {
+            // SUCCESS
+            playSound(SoundType.PLAYER_HIT); // Punch sound
+            setVisualState('punch_mid'); 
+            // Show full word instead of just "УДАР!"
+            setImpact({ text: currentWordData.full || 'УДАР!', type: 'hit' });
+            
+            const newEnemyHp = enemyHp - 1;
+            setEnemyHp(newEnemyHp);
+
+            if (newEnemyHp <= 0) {
+                hasFinished.current = true;
+                setTimeout(() => setStatus('won'), 1000); // Wait for hit animation
+            } else {
+                setTimeout(startRound, 800); // Fast tempo
+            }
+        } else {
+            // WRONG SUFFIX
+            handlePlayerMiss(false);
         }
     };
-    
-    const renderEgoText = () => {
-        const text = 'СУПЕРЭГОИНЯ';
-        const baseClasses = `absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-4 text-center text-3xl pointer-events-none`;
+
+    const handlePlayerMiss = (isTimeout: boolean) => {
+        playSound(SoundType.PLAYER_LOSE); // Hit sound
+        setVisualState('enemy_attack');
+        setImpact({ text: isTimeout ? 'МЕДЛЕННО!' : 'ОШИБКА!', type: 'miss' });
         
-        if (egoState === 'shattered') {
-            return (
-                <div className={`${baseClasses} text-white`}>
-                    {text.split('').map((char, i) => (
-                        <span key={i} className="inline-block ego-shatter-piece" style={{
-                            '--dx': `${(Math.random() - 0.5) * 600}px`,
-                            '--dy': `${(Math.random() - 0.5) * 600}px`,
-                            '--rot': `${(Math.random() - 0.5) * 1080}deg`,
-                            animationDelay: `${Math.random() * 0.1}s`,
-                        } as React.CSSProperties}>{char}</span>
-                    ))}
-                </div>
-            );
-        }
-        
-        let egoClasses = 'text-white';
-        if (egoState === 'cracked1') egoClasses = 'text-yellow-400 animate-[wiggle_0.5s_ease-in-out_2]';
-        if (egoState === 'cracked2') egoClasses = 'text-orange-500 animate-[wiggle_0.3s_ease-in-out_3]';
-        if (playerHit) egoClasses = 'text-red-500 animate-ping';
-        
-        return (
-            <div className={baseClasses}>
-                <h3 className={`transition-colors duration-500 ${egoClasses}`}>{text}</h3>
-            </div>
-        );
+        // Short delay before showing player hurt state
+        setTimeout(() => {
+            setVisualState('hurt');
+            const newPlayerHp = playerHp - 1;
+            setPlayerHp(newPlayerHp);
+
+            if (newPlayerHp <= 0) {
+                hasFinished.current = true;
+                setTimeout(() => {
+                    setStatus('lost');
+                    onLose();
+                }, 1000);
+            } else {
+                setTimeout(startRound, 1000);
+            }
+        }, 300);
     };
 
     const handleWinContinue = () => {
@@ -478,51 +300,88 @@ export const BoitsovskiyKlubFeminitivov: React.FC<{ onWin: () => void; onLose: (
         onWin();
     };
 
+    // Render Logic
+    const timerPercent = (timer / settings.reactionTime) * 100;
+    
+    // Background Enemy
+    const EnemySprite = () => (
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-100 ${visualState === 'punch_mid' ? 'scale-90 opacity-50 blur-sm' : visualState === 'enemy_attack' ? 'scale-150' : 'scale-100 animate-pulse'}`}>
+            <div className="text-[150px] md:text-[200px] leading-none select-none filter drop-shadow-[0_0_20px_rgba(255,0,0,0.5)]">
+                🧛‍♂️
+            </div>
+        </div>
+    );
+
+    // Player Hands
+    const PlayerHands = () => {
+        if (visualState === 'idle') return null;
+        if (visualState === 'punch_mid') return <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[150px] animate-[punch-up_0.2s_ease-out]">👊</div>;
+        if (visualState === 'enemy_attack' || visualState === 'hurt') return null; // Hide hands when getting hit
+        return null;
+    };
+
     return (
-        <div ref={gameAreaRef} className="w-full h-full bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden select-none">
+        <div className="w-full h-full bg-slate-900 relative overflow-hidden flex flex-col justify-between p-4 select-none">
+            <style>{`
+                @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-10px, 10px); } 75% { transform: translate(10px, -10px); } }
+                .screen-shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+                @keyframes punch-up { 0% { transform: translate(-50%, 100%); } 50% { transform: translate(-50%, -20%); } 100% { transform: translate(-50%, 0); } }
+                @keyframes flash-red { 0%, 100% { background-color: transparent; } 50% { background-color: rgba(255,0,0,0.5); } }
+                .hurt-flash { animation: flash-red 0.3s ease-in-out; }
+            `}</style>
+
             {status === 'won' && <BoitsovskiyKlubFeminitivovWinScreen onContinue={handleWinContinue} />}
+            {status === 'lost' && <div className="absolute inset-0 bg-red-900/90 z-50 flex items-center justify-center text-6xl font-black text-black">НОКАУТ!</div>}
 
-            {status === 'playing' && <>
-                <style>{`
-                    @keyframes flicker { 0%, 100% { opacity: 0; } 50% { opacity: 0.1; } }
-                    .flicker { animation: flicker 1.2s infinite steps(1); }
-                    @keyframes poof { from { transform: scale(0) rotate(0deg); opacity: 1; } to { transform: scale(1) rotate(180deg); opacity: 0; } }
-                    .particle { animation: poof 0.5s ease-out forwards; }
-                    @keyframes ego-shatter-fly {
-                        from { transform: translate(0,0) rotate(0) scale(1); opacity: 1; }
-                        to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0); opacity: 0; }
-                    }
-                    .ego-shatter-piece { animation: ego-shatter-fly 1.5s ease-out forwards; }
-                    @keyframes wiggle { 
-                        0%, 100% { transform: rotate(0deg) translateX(0); }
-                        25% { transform: rotate(2deg) translateX(5px); }
-                        75% { transform: rotate(-2deg) translateX(-5px); }
-                    }
-                `}</style>
-                <div className="absolute inset-0 bg-yellow-300 flicker pointer-events-none"></div>
-                <div className="absolute inset-0 bg-radial-gradient from-transparent to-black pointer-events-none"></div>
-                
-                <MinigameHUD>
-                    <div className="w-full text-center text-3xl">
-                        ВЫЖИВИ: {Math.ceil(timeLeft)}
+            <div className={`absolute inset-0 pointer-events-none ${visualState === 'punch_mid' ? 'screen-shake' : ''} ${visualState === 'hurt' ? 'hurt-flash' : ''}`}></div>
+
+            {status === 'playing' && (
+                <>
+                    {/* Top HUD: Health Bars */}
+                    <div className="w-full flex justify-between items-start z-10 gap-4">
+                        <HealthBar name="СУПЕРЭГО" hp={playerHp} maxHp={settings.playerHp} isPlayer />
+                        <HealthBar name="ПАТРИАРХАТ" hp={enemyHp} maxHp={settings.enemyHp} />
                     </div>
-                </MinigameHUD>
 
-                {renderEgoText()}
-
-                {/* Рендеринг слов */}
-                {words.map(w => (
-                    <div key={w.id} onClick={() => handleWordClick(w.id)} className={`absolute p-2 cursor-pointer whitespace-nowrap ${w.isTransformed ? 'text-lime-400' : 'text-orange-400'}`} style={{ left: `${w.pos.x}%`, top: `${w.pos.y}%`, transform: 'translate(-50%, -50%)', transition: 'color 0.2s', fontSize: '1.2rem' }}>
-                        {w.isTransformed ? w.correctText : w.text}
+                    {/* Center Stage */}
+                    <div className="flex-grow relative flex items-center justify-center">
+                        <EnemySprite />
+                        
+                        {/* Word Display */}
+                        {visualState === 'idle' && currentWordData && (
+                            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 p-4 border-4 border-red-600 rounded-lg transform rotate-[-2deg]">
+                                <span className="text-4xl md:text-6xl font-black text-white tracking-widest">{currentWordData.root}</span>
+                            </div>
+                        )}
+                        
+                        {impact && <ImpactEffect text={impact.text} type={impact.type} />}
+                        <PlayerHands />
                     </div>
-                ))}
-                {/* Рендеринг частиц */}
-                {particles.map((p, i) => (
-                    <div key={p.id} className="absolute w-3 h-3 bg-lime-400 particle" style={{ left: `${p.pos.x}%`, top: `${p.pos.y}%`, transform: `translate(${Math.cos(i * 45) * 50}px, ${Math.sin(i * 45) * 50}px)` }}></div>
-                ))}
-                
-                {egoState === 'shattered' && <div className="absolute inset-0 bg-red-800/70 flex items-center justify-center text-7xl font-bold">ЭГО РАЗРУШЕНО</div>}
-            </>}
+
+                    {/* Bottom Controls: Suffixes */}
+                    <div className="w-full flex flex-col items-center gap-2 z-10 mb-4">
+                        {/* Timer Bar */}
+                        <div className="w-full max-w-2xl h-4 bg-gray-800 rounded-full overflow-hidden border border-gray-600">
+                            <div 
+                                className={`h-full transition-all duration-75 ${timerPercent < 30 ? 'bg-red-500' : 'bg-yellow-400'}`} 
+                                style={{ width: `${timerPercent}%` }}
+                            ></div>
+                        </div>
+
+                        <div className="flex gap-4 md:gap-8 mt-4 justify-center">
+                            {options.map((option, i) => (
+                                <FistButton 
+                                    key={i} 
+                                    suffix={option.text} 
+                                    onClick={() => handlePlayerHit(option)} 
+                                    disabled={visualState !== 'idle'} 
+                                    isChaos={option.isChaos}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

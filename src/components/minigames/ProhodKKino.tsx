@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { STROITELNIE_TERMINY } from '../../data/wordData';
@@ -267,9 +268,39 @@ export const ProhodKKino: React.FC<{ onWin: () => void; onLose: () => void; isMi
             setObstacles(obs => obs.map(o => {
                 if(o.isHit) return o;
                 const obsPixel = { x: (o.x / 100) * rect.width, y: (o.y / 100) * rect.height, size: o.size };
-                const dx = playerPixel.x - obsPixel.x; const dy = playerPixel.y - obsPixel.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance < (playerPixel.size + obsPixel.size) / 2) {
+                let hit = false;
+
+                if (o.type === 'concept') {
+                    // Rectangular collision for text
+                    // Estimate width: char count * approx width per char + padding
+                    const estimatedWidth = o.content.length * o.size * 0.6;
+                    const obsRect = {
+                        left: obsPixel.x - estimatedWidth / 2,
+                        right: obsPixel.x + estimatedWidth / 2,
+                        top: obsPixel.y - o.size / 2,
+                        bottom: obsPixel.y + o.size / 2
+                    };
+                    
+                    const playerRect = {
+                        left: playerPixel.x - playerPixel.size / 2,
+                        right: playerPixel.x + playerPixel.size / 2,
+                        top: playerPixel.y - playerPixel.size / 2,
+                        bottom: playerPixel.y + playerPixel.size / 2
+                    };
+
+                    hit = (playerRect.left < obsRect.right && 
+                           playerRect.right > obsRect.left && 
+                           playerRect.top < obsRect.bottom && 
+                           playerRect.bottom > obsRect.top);
+                } else {
+                    // Circular collision for emojis
+                    const dx = playerPixel.x - obsPixel.x; 
+                    const dy = playerPixel.y - obsPixel.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    hit = distance < (playerPixel.size + obsPixel.size) / 2;
+                }
+
+                if (hit) {
                     if (isMinigameInverted) {
                         playSound(SoundType.ITEM_CATCH_GOOD);
                         addScore(25);

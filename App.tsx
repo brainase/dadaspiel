@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { GameScreen, Character } from './types';
+import { GameScreen, Character, SeasonalEvent } from './types';
 import { GameProvider, useNavigation, useSession, useProfile, useSettings } from './src/context/GameContext';
 import { MusicType, SoundType, startMusic, stopMusic } from './src/utils/AudioEngine';
 
@@ -11,6 +11,7 @@ import { OutroScreen } from './src/components/core/OutroScreen';
 import { ConfirmationModal } from './src/components/core/ConfirmationModal';
 import { GlitchWinScreen } from './src/components/core/GlitchWinScreen';
 import { InstructionModal } from './src/components/core/InstructionModal';
+import { SeasonalOverlay } from './src/components/core/SeasonalOverlay';
 import { instructionData } from './src/data/instructionData';
 
 import { ProfileSelectionScreen } from './src/components/screens/ProfileSelectionScreen';
@@ -37,6 +38,21 @@ const getMusicForMinigame = (id: string): MusicType | null => {
     if (id === "6-1") return MusicType.AMBIENT_NATURE;
     if (id === "6-3") return MusicType.LOOP_VACUUM;
     return null; // For games with no bg music, like 3-2 (Pereverni Kalendar)
+}
+
+// Function to get seasonal music type
+const getSeasonalMusic = (event: SeasonalEvent): MusicType | null => {
+    switch (event) {
+        case SeasonalEvent.NEW_YEAR: return MusicType.SEASONAL_NEW_YEAR;
+        case SeasonalEvent.APRIL_FOOLS: return MusicType.SEASONAL_APRIL_FOOLS;
+        case SeasonalEvent.HALLOWEEN: return MusicType.SEASONAL_HALLOWEEN;
+        case SeasonalEvent.DADA_BIRTHDAY: return MusicType.SEASONAL_DADA_BIRTHDAY;
+        case SeasonalEvent.SEPTEMBER_3: return MusicType.SEASONAL_SEPTEMBER_3;
+        case SeasonalEvent.GONDOLIER_DAY: return MusicType.SEASONAL_GONDOLIER;
+        case SeasonalEvent.GLITCH_DAY: return MusicType.SEASONAL_GLITCH;
+        case SeasonalEvent.POTATO_SALVATION: return MusicType.SEASONAL_POTATO;
+        default: return null;
+    }
 }
 
 // Component for the content of the initial welcome/general instructions modal.
@@ -71,7 +87,7 @@ const App: React.FC = () => {
         isGlitchWin
     } = useSession();
     const { profileToDeleteId, profiles, confirmDeleteProfile, cancelDeleteProfile, isLogoutConfirmationVisible, confirmLogout, cancelLogout } = useProfile();
-    const { debugMode, playSound } = useSettings();
+    const { debugMode, playSound, seasonalEvent, seasonalAnimationsEnabled } = useSettings();
     const [isInitialLaunch, setIsInitialLaunch] = useState(false);
 
     // Определяем текущую мини-игру и её компонент.
@@ -97,12 +113,17 @@ const App: React.FC = () => {
                 stopMusic();
             }
         } else if (screen === GameScreen.PROFILE_SELECTION || screen === GameScreen.CASE_SELECTION || screen === GameScreen.LEADERBOARD) {
-            startMusic(MusicType.MENU);
+            const seasonalMusic = getSeasonalMusic(seasonalEvent);
+            if (seasonalAnimationsEnabled && seasonalMusic !== null) {
+                startMusic(seasonalMusic);
+            } else {
+                startMusic(MusicType.MENU);
+            }
         } else {
             // Stop music on any other screen (intros, outros, etc.)
             stopMusic();
         }
-    }, [screen, currentMinigame]);
+    }, [screen, currentMinigame, seasonalEvent, seasonalAnimationsEnabled]);
     
     const profilePendingDeletion = profiles.find(p => p.id === profileToDeleteId);
 
@@ -176,84 +197,92 @@ const App: React.FC = () => {
         }
     };
 
+    // Apply global style overrides for certain events (like April Fools) only if enabled
+    const containerStyle: React.CSSProperties = (seasonalAnimationsEnabled && seasonalEvent === SeasonalEvent.APRIL_FOOLS)
+        ? { filter: 'grayscale(100%)', fontFamily: 'Arial, sans-serif' } 
+        : {};
+
     return (
         <GameWrapper>
-            <HUD />
-            
-            <div key={screen} className="screen-content-wrapper">
-                {renderScreen()}
-            </div>
-            
-            {isGlitchWin && <GlitchWinScreen />}
+            <div style={containerStyle} className="w-full h-full relative">
+                <HUD />
+                <SeasonalOverlay />
+                
+                <div key={screen} className="screen-content-wrapper">
+                    {renderScreen()}
+                </div>
+                
+                {isGlitchWin && <GlitchWinScreen />}
 
-            {debugMode && screen !== GameScreen.DEBUG_MENU && screen !== GameScreen.DEBUG_ANIMATION_VIEWER && (
-                <button
-                    onClick={() => setScreen(GameScreen.DEBUG_MENU)}
-                    className="absolute bottom-4 right-4 pixel-button p-2 text-sm z-50 bg-purple-700 hover:bg-purple-800"
-                    aria-label="Открыть меню отладки"
-                >
-                    АЛАДКИ
-                </button>
-            )}
+                {debugMode && screen !== GameScreen.DEBUG_MENU && screen !== GameScreen.DEBUG_ANIMATION_VIEWER && (
+                    <button
+                        onClick={() => setScreen(GameScreen.DEBUG_MENU)}
+                        className="absolute bottom-4 right-4 pixel-button p-2 text-sm z-50 bg-purple-700 hover:bg-purple-800"
+                        aria-label="Открыть меню отладки"
+                    >
+                        АЛАДКИ
+                    </button>
+                )}
 
-            {isInstructionModalVisible && !isLogoutConfirmationVisible && InstructionContentComponent && (
-                 <InstructionModal
-                    title={instructionTitle}
-                    onStart={() => {
-                        if (isInitialLaunch) {
-                            localStorage.setItem('dada-spiel-has-seen-welcome', 'true');
-                            setIsInitialLaunch(false);
+                {isInstructionModalVisible && !isLogoutConfirmationVisible && InstructionContentComponent && (
+                    <InstructionModal
+                        title={instructionTitle}
+                        onStart={() => {
+                            if (isInitialLaunch) {
+                                localStorage.setItem('dada-spiel-has-seen-welcome', 'true');
+                                setIsInitialLaunch(false);
+                            }
+                            hideInstructionModal();
+                        }}
+                    >
+                        <InstructionContentComponent character={character} isMinigameInverted={isMinigameInverted} />
+                    </InstructionModal>
+                )}
+
+                {profilePendingDeletion && (
+                    <ConfirmationModal
+                        title="ПОДТВЕРДИТЕ УДАЛЕНИЕ"
+                        message={
+                            <>
+                                <p>Вы уверены, что хотите удалить профиль</p>
+                                <p className="font-bold text-yellow-400 mt-2">"{profilePendingDeletion.name}"?</p>
+                                <p className="mt-4 text-base text-gray-400">Это действие нельзя будет отменить.</p>
+                            </>
                         }
-                        hideInstructionModal();
-                    }}
-                 >
-                    <InstructionContentComponent character={character} isMinigameInverted={isMinigameInverted} />
-                </InstructionModal>
-            )}
+                        onConfirm={() => {
+                            playSound(SoundType.DESTROY);
+                            confirmDeleteProfile();
+                        }}
+                        onCancel={() => {
+                            playSound(SoundType.BUTTON_CLICK);
+                            cancelDeleteProfile();
+                        }}
+                        confirmText="УДАЛИТЬ"
+                    />
+                )}
 
-            {profilePendingDeletion && (
-                <ConfirmationModal
-                    title="ПОДТВЕРДИТЕ УДАЛЕНИЕ"
-                    message={
-                        <>
-                            <p>Вы уверены, что хотите удалить профиль</p>
-                            <p className="font-bold text-yellow-400 mt-2">"{profilePendingDeletion.name}"?</p>
-                            <p className="mt-4 text-base text-gray-400">Это действие нельзя будет отменить.</p>
-                        </>
-                    }
-                    onConfirm={() => {
-                        playSound(SoundType.DESTROY);
-                        confirmDeleteProfile();
-                    }}
-                    onCancel={() => {
-                        playSound(SoundType.BUTTON_CLICK);
-                        cancelDeleteProfile();
-                    }}
-                    confirmText="УДАЛИТЬ"
-                />
-            )}
-
-            {isLogoutConfirmationVisible && (
-                 <ConfirmationModal
-                    title="ВЫХОД"
-                    message={
-                        <>
-                          <p>Вы уверены, что хотите выйти в главное меню?</p>
-                          <p className="mt-4 text-base text-gray-400">Текущий прогресс сессии (очки) будет сохранён.</p>
-                        </>
-                    }
-                    onConfirm={() => {
-                        playSound(SoundType.BUTTON_CLICK);
-                        confirmLogout();
-                    }}
-                    onCancel={() => {
-                        playSound(SoundType.BUTTON_CLICK);
-                        cancelLogout();
-                    }}
-                    confirmText="ВЫЙТИ"
-                    confirmButtonClass="bg-blue-700 hover:bg-blue-800"
-                />
-            )}
+                {isLogoutConfirmationVisible && (
+                    <ConfirmationModal
+                        title="ВЫХОД"
+                        message={
+                            <>
+                            <p>Вы уверены, что хотите выйти в главное меню?</p>
+                            <p className="mt-4 text-base text-gray-400">Текущий прогресс сессии (очки) будет сохранён.</p>
+                            </>
+                        }
+                        onConfirm={() => {
+                            playSound(SoundType.BUTTON_CLICK);
+                            confirmLogout();
+                        }}
+                        onCancel={() => {
+                            playSound(SoundType.BUTTON_CLICK);
+                            cancelLogout();
+                        }}
+                        confirmText="ВЫЙТИ"
+                        confirmButtonClass="bg-blue-700 hover:bg-blue-800"
+                    />
+                )}
+            </div>
         </GameWrapper>
     );
 };

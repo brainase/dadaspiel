@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSession, useSettings, useProfile, useNavigation } from '../../context/GameContext';
 import { playSound, SoundType } from '../../utils/AudioEngine';
-import { Character, GameScreen } from '../../../types';
+import { Character, GameScreen, SeasonalEvent } from '../../../types';
 
 export const HUD: React.FC = () => {
   const { 
     lives, sessionScore, character, activateArtistInsight, activateFourthWall,
     abilityUsedInCase, abilityUsedInSession, absurdEdgeUsedInSession, activateAbsurdEdge
   } = useSession();
-  const { isMuted, toggleMute } = useSettings();
+  const { isMuted, toggleMute, seasonalEvent, seasonalAnimationsEnabled, toggleSeasonalAnimations } = useSettings();
   const { activeProfile, requestLogout } = useProfile();
   const { screen, showInstructionModal } = useNavigation();
 
@@ -126,6 +126,17 @@ export const HUD: React.FC = () => {
             <button onClick={handleToggleMute} className="pixel-button text-2xl !p-2" aria-label={isMuted ? "Включить звук" : "Выключить звук"} style={{textShadow: 'none'}}>{isMuted ? '🔇' : '🔊'}</button>
             <button onClick={handleToggleFullscreen} className="pixel-button text-2xl !p-2" aria-label={isFullscreen ? "Выйти из полноэкранного режима" : "Войти в полноэкранный режим"} style={{textShadow: 'none'}}>{isFullscreen ? '↙️' : '↗️'}</button>
             <button onClick={() => showInstructionModal()} className="pixel-button text-2xl !p-2" aria-label="Показать информацию" style={{textShadow: 'none'}}>ℹ️</button>
+            {/* Seasonal Toggle Button - Only visible during holidays */}
+            {seasonalEvent !== SeasonalEvent.NONE && (
+                <button 
+                    onClick={toggleSeasonalAnimations} 
+                    className="pixel-button text-2xl !p-2" 
+                    title="Вкл/Выкл Праздник" 
+                    style={{textShadow: 'none'}}
+                >
+                    {seasonalAnimationsEnabled ? '🎉' : '🚫'}
+                </button>
+            )}
             {activeProfile && <button onClick={() => requestLogout()} className="pixel-button text-2xl !p-2 bg-red-800" aria-label="Выйти в главное меню" style={{textShadow: 'none'}}>🚪</button>}
         </div>
       </div>

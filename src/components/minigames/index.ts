@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 import { NaleyShampanskogo } from './NaleyShampanskogo';
@@ -9,11 +10,12 @@ import { ProhodKKino } from './ProhodKKino';
 import { PereverniKalendar } from './PereverniKalendar';
 import { SoberiFeminitiv } from './SoberiFeminitiv';
 import { BoitsovskiyKlubFeminitivov } from './BoitsovskiyKlubFeminitivov';
-import { PrigotovlenieAladok } from './PrigotovlenieAladok';
+// import { PrigotovlenieAladok } from './PrigotovlenieAladok'; // Archived
 import { PoceluyDobra } from './PoceluyDobra';
 import { FruktoviySpor } from './FruktoviySpor';
 import { NePodavis } from './NePodavis';
 import { ZasosPylesosa } from './ZasosPylesosa';
+import { DranikiShooter } from './DranikiShooter';
 
 // Это карта (объект), которая сопоставляет строковый ID мини-игры
 // (например, "1-1") с её React-компонентом.
@@ -29,10 +31,9 @@ export const minigameComponentMap: { [key: string]: React.FC<{ onWin: () => void
     "3-2": PereverniKalendar,
     "4-1": SoberiFeminitiv,
     "4-2": BoitsovskiyKlubFeminitivov,
-    "5-1": PrigotovlenieAladok,
+    "5-1": NePodavis, // Moved here to replace Aladki
     "5-2": PoceluyDobra,
     "6-1": FruktoviySpor,
-    "6-2": NePodavis,
-    "6-3": ZasosPylesosa,
-    // Debug games are removed
+    "6-2": ZasosPylesosa, // Moved here
+    "6-3": DranikiShooter, // New Finale
 };

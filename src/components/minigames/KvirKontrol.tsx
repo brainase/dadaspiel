@@ -105,7 +105,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
     
     // Состояние для механики Чёрного Игрока
     const [round3Mode, setRound3Mode] = useState<'rotate' | 'color'>('rotate');
-    const [modeChangeEffect, setModeChangeEffect] = useState(0);
+    const [modeAnnouncement, setModeAnnouncement] = useState<string | null>(null);
     const ruleChangeTimeout = useRef<number | null>(null);
 
     const isTargetMovementActive = (character === Character.BLACK_PLAYER && round >= 2) || round >= 3;
@@ -190,13 +190,20 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
             const newMode = prevMode === 'rotate' ? 'color' : 'rotate';
             // Режим вращения сложнее, даем больше времени
             const duration = (newMode === 'rotate' ? 7000 : 5000) + Math.random() * 2000;
-            setModeChangeEffect(k => k + 1);
+            
+            // Trigger visual feedback
+            setModeChangeFeedback(newMode);
             playSound(SoundType.TRANSFORM_SUCCESS);
 
             ruleChangeTimeout.current = window.setTimeout(switchMode, duration);
             return newMode;
         });
     }, [playSound]);
+
+    const setModeChangeFeedback = (mode: 'rotate' | 'color') => {
+        setModeAnnouncement(mode === 'rotate' ? 'РЕЖИМ: ВРАЩЕНИЕ' : 'РЕЖИМ: ЦВЕТ');
+        setTimeout(() => setModeAnnouncement(null), 1500);
+    };
 
     // Запуск смены режимов для Чёрного Игрока
     useEffect(() => {
@@ -208,6 +215,7 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
         if (round === 3 && status === 'playing' && character === Character.BLACK_PLAYER && !isInstructionModalVisible) {
             const initialDuration = 7000 + Math.random() * 2000;
             setRound3Mode('rotate');
+            setModeChangeFeedback('rotate'); // Initial announcement
             ruleChangeTimeout.current = window.setTimeout(switchMode, initialDuration);
         }
 
@@ -377,21 +385,34 @@ export const KvirKontrol: React.FC<{ onWin: () => void; onLose: () => void }> = 
 
             {status === 'playing' && <>
                 <style>{`
-                    @keyframes instruction-flash {
-                        from { transform: scale(1.1); color: white; }
-                        to { transform: scale(1.0); color: inherit; }
+                    @keyframes mode-announce-pop {
+                        0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                        20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+                        30% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                        80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                        100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
                     }
-                    .instruction-flash { animation: instruction-flash 0.4s ease-out; }
+                    .mode-announce {
+                        animation: mode-announce-pop 1.5s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+                        text-shadow: 4px 4px 0 #000, -2px -2px 0 #000;
+                    }
                 `}</style>
                 <MinigameHUD>
                     <div className="w-full text-center">
                         <h3 className="text-3xl mb-2">А ВЫ КВИР? (Раунд {round}/3)</h3>
-                         <p key={modeChangeEffect} className={`text-sm text-yellow-300 ${round === 3 && character === Character.BLACK_PLAYER ? 'instruction-flash' : ''}`}>
+                         <p className="text-sm text-yellow-300">
                             Время: {timeLeft} сек.
                             {character === Character.BLACK_PLAYER && round === 3 && ` | РЕЖИМ: ${round3Mode === 'rotate' ? 'ВРАЩЕНИЕ' : 'ЦВЕТ'}`}
                         </p>
                     </div>
                 </MinigameHUD>
+                
+                {/* Black Player Mode Switch Overlay */}
+                {modeAnnouncement && (
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none w-full text-center">
+                        <h2 className="text-6xl md:text-8xl font-black text-yellow-400 mode-announce">{modeAnnouncement}</h2>
+                    </div>
+                )}
                 
                 <div className="w-full h-full relative z-10">
                      {shapes.map(s => (

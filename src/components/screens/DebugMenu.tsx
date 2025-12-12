@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { useNavigation, useSettings } from '../../context/GameContext';
 import { ALL_MINIGAMES } from '../../data/caseData';
 import { CHARACTERS } from '../../data/characterData';
-import { GameScreen } from '../../../types';
+import { GameScreen, SeasonalEvent } from '../../../types';
 import { SoundType } from '../../utils/AudioEngine';
 
 const animationButtons = [
@@ -24,9 +25,21 @@ const animationButtons = [
   { id: 'otorvi-pisyun', name: 'Билет (Писюн)' },
 ];
 
+const seasonalEvents = [
+    { id: SeasonalEvent.NONE, name: 'Нет' },
+    { id: SeasonalEvent.NEW_YEAR, name: 'Новый Год' },
+    { id: SeasonalEvent.APRIL_FOOLS, name: '1 Апреля' },
+    { id: SeasonalEvent.HALLOWEEN, name: 'Хэллоуин' },
+    { id: SeasonalEvent.DADA_BIRTHDAY, name: 'ДР Дада' },
+    { id: SeasonalEvent.SEPTEMBER_3, name: '3 Сентября' },
+    { id: SeasonalEvent.GONDOLIER_DAY, name: 'День Гондольера' },
+    { id: SeasonalEvent.GLITCH_DAY, name: 'День Глюка' },
+    { id: SeasonalEvent.POTATO_SALVATION, name: 'Картофельный Спас' },
+];
+
 export const DebugMenu: React.FC = () => {
     const { setScreen, setAnimationToView, jumpToMinigame } = useNavigation();
-    const { isLogging, toggleLogging, playSound, debugCharacter, setDebugCharacter } = useSettings();
+    const { isLogging, toggleLogging, playSound, debugCharacter, setDebugCharacter, seasonalEvent, setSeasonalEvent } = useSettings();
     
     const handleAnimationClick = (id: string) => {
         playSound(SoundType.BUTTON_CLICK);
@@ -76,6 +89,19 @@ export const DebugMenu: React.FC = () => {
                 >
                     Сброс
                 </button>
+            </div>
+
+            <h3 className="text-2xl mt-6 mb-2">Сезонные события</h3>
+            <div className="w-full grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                {seasonalEvents.map(ev => (
+                    <button
+                        key={ev.id}
+                        onClick={() => handleActionClick(() => setSeasonalEvent(ev.id))}
+                        className={`pixel-button p-2 ${seasonalEvent === ev.id ? 'bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    >
+                        {ev.name}
+                    </button>
+                ))}
             </div>
 
             <h3 className="text-2xl mt-6 mb-2">Анимации победы</h3>

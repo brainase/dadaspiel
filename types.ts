@@ -1,5 +1,4 @@
 
-
 // Перечисление (enum) для всех возможных экранов в игре.
 // Используется для управления тем, какой компонент отображается в данный момент.
 export enum GameScreen {
@@ -21,6 +20,19 @@ export enum Character {
   KANILA = "Канила Дозловский",
   SEXISM = "Сексизм Эванович",
   BLACK_PLAYER = "Чёрный Игрок",
+}
+
+// Сезонные события
+export enum SeasonalEvent {
+  NONE = "NONE",
+  NEW_YEAR = "NEW_YEAR", // Оливье и майонез
+  APRIL_FOOLS = "APRIL_FOOLS", // Бюрократия и скука
+  HALLOWEEN = "HALLOWEEN", // Экзистенциальный ужас
+  DADA_BIRTHDAY = "DADA_BIRTHDAY", // 2 августа (День ВДВ + Дада)
+  SEPTEMBER_3 = "SEPTEMBER_3", // Шуфутинский
+  GONDOLIER_DAY = "GONDOLIER_DAY", // 4 марта
+  GLITCH_DAY = "GLITCH_DAY", // 29 мая (День Глюка)
+  POTATO_SALVATION = "POTATO_SALVATION", // 20 октября (Картофельный Спас)
 }
 
 // Интерфейс, описывающий структуру данных одной мини-игры.

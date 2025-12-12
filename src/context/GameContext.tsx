@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode, useMemo, useRef } from 'react';
-import { GameScreen, Character, CaseData, LogEntry, PlayerProfile } from '../../types';
+import { GameScreen, Character, CaseData, LogEntry, PlayerProfile, SeasonalEvent } from '../../types';
 import { CASES } from '../data/caseData';
 import { playSound as playSoundUtil, toggleMuteState, getMuteState, SoundType, stopMusic } from '../utils/AudioEngine';
 import { MINIGAME_VIDEO_MAP } from '../data/videoData';
@@ -31,6 +31,11 @@ interface SettingsContextType {
     playSound: (type: SoundType) => void;
     debugCharacter: Character | null;
     setDebugCharacter: (character: Character | null) => void;
+    seasonalEvent: SeasonalEvent;
+    setSeasonalEvent: (event: SeasonalEvent) => void;
+    seasonalAnimationsEnabled: boolean;
+    toggleSeasonalAnimations: () => void;
+    seasonalMessage: string | null;
 }
 
 interface ProfileContextType {
@@ -116,6 +121,50 @@ const saveProfilesToStorage = (profilesToSave: PlayerProfile[]) => {
     }
 };
 
+// Helper to calculate seasonal event
+const getSeasonalEvent = (): SeasonalEvent => {
+    const today = new Date();
+    const month = today.getMonth(); // 0-indexed (0 = Jan, 11 = Dec)
+    const date = today.getDate();
+
+    // 3 Сентября
+    if (month === 8 && date === 3) return SeasonalEvent.SEPTEMBER_3;
+
+    // Новый Год (с 20 дек по 5 янв)
+    if ((month === 11 && date >= 20) || (month === 0 && date <= 5)) return SeasonalEvent.NEW_YEAR;
+
+    // День Рождения Дада (2 августа) - выбрано специально для контраста
+    if (month === 7 && date === 2) return SeasonalEvent.DADA_BIRTHDAY;
+
+    // 1 Апреля
+    if (month === 3 && date === 1) return SeasonalEvent.APRIL_FOOLS;
+
+    // Хэллоуин (30 окт - 1 ноя)
+    if (month === 9 && date >= 30 || (month === 10 && date === 1)) return SeasonalEvent.HALLOWEEN;
+
+    // День Гондольера (4 марта)
+    if (month === 2 && date === 4) return SeasonalEvent.GONDOLIER_DAY;
+
+    // День Глюка (29 мая)
+    if (month === 4 && date === 29) return SeasonalEvent.GLITCH_DAY;
+
+    // День Драников (12 февраля)
+    if (month === 1 && date === 12) return SeasonalEvent.POTATO_SALVATION;
+
+    return SeasonalEvent.NONE;
+};
+
+const MESSAGES_BY_EVENT: Partial<Record<SeasonalEvent, string[]>> = {
+    [SeasonalEvent.NEW_YEAR]: ["Салат в помощь!", "С Новым Гадом!", "Мандарины - это ложь.", "Оливье с майонезом судьбы."],
+    [SeasonalEvent.APRIL_FOOLS]: ["Вам повестка.", "Это не шутка.", "Смех продлевает срок.", "Заполните форму 2-НДФЛ."],
+    [SeasonalEvent.HALLOWEEN]: ["Ипотека близко...", "Бу!", "Жизнь - это ужас.", "Твоя спина белая (от страха)."],
+    [SeasonalEvent.DADA_BIRTHDAY]: ["Фонтаны для купания!", "Внезапный Дада Вопрос!", "Няшность спасет мир!", "Любовь, голуби и кирпичи.", "Розовый - новый камуфляж.", "Make DADA not WAR."],
+    [SeasonalEvent.SEPTEMBER_3]: ["Я календарь...", "...переверну!", "Костры рябин горят.", "Всё не то, всё не так."],
+    [SeasonalEvent.GONDOLIER_DAY]: ["ЯМы Гондольер", "Не раскачивай лодку!", "Греби отсюда.", "Полосатый рейс.", "Венеция тонет, а мы нет."],
+    [SeasonalEvent.GLITCH_DAY]: ["ERROR 404: REALITY NOT FOUND", "undefined is not a function", "CSS is awesome", "Wake up, Neo...", "01000100 01000001", "Сбой в матрице."],
+    [SeasonalEvent.POTATO_SALVATION]: ["Слава Крахмалу!", "Вся власть драникам!", "Не чисти — так жарь!", "Bulba is Life.", "Святой Клубень следит за тобой."]
+};
+
 export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     // ---- Состояние ----
     const [screen, _setScreen] = useState<GameScreen>(GameScreen.PROFILE_SELECTION);
@@ -144,6 +193,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isGlitchWin, setIsGlitchWin] = useState(false);
     const [glitchWinVideoUrl, setGlitchWinVideoUrl] = useState<string | null>(null);
     const isTransitioning = useRef(false);
+    const [seasonalEvent, setSeasonalEvent] = useState<SeasonalEvent>(SeasonalEvent.NONE);
+    const [seasonalAnimationsEnabled, setSeasonalAnimationsEnabled] = useState(true);
+    const [seasonalMessage, setSeasonalMessage] = useState<string | null>(null);
 
     // --- Modal States ---
     const [isInstructionModalOpen, setIsInstructionModalOpen] = useState(false);
@@ -154,16 +206,47 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const character = useMemo(() => debugCharacter || activeProfile?.character || null, [activeProfile, debugCharacter]);
     const isUIPaused = isInstructionModalOpen || isLogoutConfirmationVisible;
 
+    // --- Init Seasonal Event ---
+    useEffect(() => {
+        setSeasonalEvent(getSeasonalEvent());
+    }, []);
+
+    // --- Seasonal Message Loop ---
+    useEffect(() => {
+        if (seasonalEvent === SeasonalEvent.NONE) {
+            setSeasonalMessage(null);
+            return;
+        }
+
+        const messages = MESSAGES_BY_EVENT[seasonalEvent];
+        if (!messages) return;
+
+        const loop = () => {
+            if (Math.random() > 0.4) { // Chance to show message
+                const msg = messages[Math.floor(Math.random() * messages.length)];
+                setSeasonalMessage(msg);
+                setTimeout(() => setSeasonalMessage(null), 4000); // Hide after 4s
+            }
+            // Next attempt in 30-60s
+            const delay = 30000 + Math.random() * 30000;
+            timeoutRef.current = window.setTimeout(loop, delay);
+        };
+
+        let timeoutRef = { current: window.setTimeout(loop, 10000) }; // Start loop after 10s
+
+        return () => clearTimeout(timeoutRef.current);
+    }, [seasonalEvent]);
+
     const dynamicCases = useMemo(() => {
         if (debugMode) { return CASES; }
         if (!activeProfile) return CASES;
-        const today = new Date();
-        const isThirdOfSeptember = today.getMonth() === 8 && today.getDate() === 3;
-        if ((activeProfile.character === Character.KANILA || activeProfile.character === Character.SEXISM) && !isThirdOfSeptember) {
+        
+        // Hide 3rd September game if it's not the date, unless we are Black Player or have debug
+        if (seasonalEvent !== SeasonalEvent.SEPTEMBER_3 && activeProfile.character !== Character.BLACK_PLAYER) {
           return CASES.map(c => c.id === 3 ? { ...c, minigames: c.minigames.filter(mg => mg.id !== "3-2") } : c).filter(c => c.minigames.length > 0);
         }
         return CASES;
-    }, [activeProfile, debugMode]);
+    }, [activeProfile, debugMode, seasonalEvent]);
 
     // --- Загрузка и базовые действия ---
     useEffect(() => {
@@ -182,6 +265,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const playSound = useCallback((type: SoundType) => playSoundUtil(type), []);
     
     const toggleMute = useCallback(() => { const newState = toggleMuteState(); setIsMuted(newState); logEvent(`Sound ${newState ? 'muted' : 'unmuted'}`); }, [logEvent]);
+
+    const toggleSeasonalAnimations = useCallback(() => {
+        setSeasonalAnimationsEnabled(prev => !prev);
+        playSound(SoundType.GENERIC_CLICK);
+    }, [playSound]);
 
     const saveScoreAndEndSession = useCallback(() => {
         if (!activeProfileId) return;
@@ -368,7 +456,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // --- Memoized Context Values ---
     const navigationContextValue = useMemo(() => ({ screen, setScreen, animationToView, setAnimationToView, jumpToMinigame, isInstructionModalVisible: isUIPaused, showInstructionModal: () => setIsInstructionModalOpen(true), hideInstructionModal: () => setIsInstructionModalOpen(false) }), [screen, animationToView, isUIPaused, setScreen, jumpToMinigame]);
-    const settingsContextValue = useMemo(() => ({ debugMode, toggleDebug: () => setDebugMode(d => !d), isLogging, toggleLogging: () => setIsLogging(l => !l), setIsLogging, log, logEvent, isMuted, toggleMute, playSound, debugCharacter, setDebugCharacter }), [debugMode, isLogging, log, isMuted, debugCharacter, logEvent, playSound, toggleMute]);
+    const settingsContextValue = useMemo(() => ({ debugMode, toggleDebug: () => setDebugMode(d => !d), isLogging, toggleLogging: () => setIsLogging(l => !l), setIsLogging, log, logEvent, isMuted, toggleMute, playSound, debugCharacter, setDebugCharacter, seasonalEvent, setSeasonalEvent, seasonalAnimationsEnabled, toggleSeasonalAnimations, seasonalMessage }), [debugMode, isLogging, log, isMuted, debugCharacter, logEvent, playSound, toggleMute, seasonalEvent, setSeasonalEvent, seasonalAnimationsEnabled, toggleSeasonalAnimations, seasonalMessage]);
     const profileContextValue = useMemo(() => ({ profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, requestLogout, dynamicCases, isLogoutConfirmationVisible, confirmLogout, cancelLogout }), [profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, requestLogout, dynamicCases, isLogoutConfirmationVisible, confirmLogout, cancelLogout]);
     const sessionContextValue = useMemo(() => ({ character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, isGlitchWin, glitchWinVideoUrl, startCase, winMinigame, loseMinigame, killPlayer, addLife: (amount = 1) => setLives(l => l + amount), addScore: (points) => setSessionScore(s => s + points), activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge, proceedAfterGlitchWin }), [character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, isGlitchWin, glitchWinVideoUrl, startCase, winMinigame, loseMinigame, killPlayer, activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge, proceedAfterGlitchWin]);
 
