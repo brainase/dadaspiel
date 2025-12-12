@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSession, useSettings, useNavigation } from '../../context/GameContext';
 import { useGameLoop } from '../../hooks/useGameLoop';
@@ -11,14 +12,14 @@ const PixelVacuum: React.FC<{animationToggle: boolean}> = ({ animationToggle }) 
     return (
         <div className="w-48 h-24 relative" style={{imageRendering: 'pixelated'}}>
             {/* Тело */}
-            <div className="absolute w-40 h-16 bg-yellow-400 border-4 border-black bottom-0 left-4 rounded-t-lg"></div>
+            <div className="absolute w-40 h-16 bg-yellow-400 border-4 border-black bottom-0 left-4 rounded-t-lg z-20"></div>
             {/* Колеса */}
-            <div className="absolute w-10 h-10 bg-gray-600 border-4 border-black rounded-full bottom-[-8px] left-0"></div>
-            <div className="absolute w-10 h-10 bg-gray-600 border-4 border-black rounded-full bottom-[-8px] right-0"></div>
+            <div className="absolute w-10 h-10 bg-gray-600 border-4 border-black rounded-full bottom-[-8px] left-0 z-30"></div>
+            <div className="absolute w-10 h-10 bg-gray-600 border-4 border-black rounded-full bottom-[-8px] right-0 z-30"></div>
             {/* Шланг */}
-            <div className="absolute w-8 h-12 bg-gray-700 border-4 border-black top-[-8px] left-1/2 -translate-x-1/2"></div>
+            <div className="absolute w-8 h-12 bg-gray-700 border-4 border-black top-[-8px] left-1/2 -translate-x-1/2 z-10"></div>
              {/* Индикатор анимации */}
-            <div className={`absolute w-4 h-4 rounded-full top-2 left-20 ${animationToggle ? 'bg-red-500' : 'bg-green-500'}`}></div>
+            <div className={`absolute w-4 h-4 rounded-full top-2 left-20 z-30 ${animationToggle ? 'bg-red-500' : 'bg-green-500'}`}></div>
         </div>
     )
 }
@@ -60,19 +61,107 @@ export const ZasosPylesosaWinScreen: React.FC<{ onContinue: () => void; charArt:
     )
 }
 
+// Background Component tailored for each character
+const ThemedBackground: React.FC<{ character: Character | null, scrollOffset: number }> = ({ character, scrollOffset }) => {
+    // Kanila: Cyber-Glitch / Acid Punk (Lighter than before)
+    if (character === Character.KANILA) {
+        return (
+            <div className="absolute inset-0 bg-fuchsia-900 overflow-hidden">
+                <style>{`
+                    @keyframes glitch-bg {
+                        0% { background-position: 0% 0%; opacity: 0.1; }
+                        25% { background-position: 5% 5%; opacity: 0.2; }
+                        50% { background-position: -5% -5%; opacity: 0.1; }
+                        75% { background-position: 5% -5%; opacity: 0.2; }
+                        100% { background-position: 0% 0%; opacity: 0.1; }
+                    }
+                `}</style>
+                {/* Lighter, messy background pattern */}
+                <div 
+                    className="absolute inset-0" 
+                    style={{ 
+                        backgroundImage: `linear-gradient(45deg, #4a044e 25%, transparent 25%, transparent 75%, #4a044e 75%, #4a044e), linear-gradient(45deg, #4a044e 25%, transparent 25%, transparent 75%, #4a044e 75%, #4a044e)`,
+                        backgroundSize: '40px 40px',
+                        backgroundPosition: `0 ${scrollOffset}%`,
+                        opacity: 0.3
+                    }}
+                ></div>
+                {/* Static Noise Overlay */}
+                <div className="absolute inset-0 pointer-events-none" style={{
+                    backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\' opacity=\'0.1\'/%3E%3C/svg%3E")',
+                    animation: 'glitch-bg 0.5s steps(3) infinite'
+                }}></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-fuchsia-900/50 opacity-50"></div>
+            </div>
+        );
+    }
+
+    // Sexism: Surreal Gallery (Unchanged, already light)
+    if (character === Character.SEXISM) {
+        return (
+            <div className="absolute inset-0 bg-[#fdf6e3] overflow-hidden">
+                <div 
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                        backgroundImage: `linear-gradient(45deg, #d2b48c 25%, transparent 25%, transparent 75%, #d2b48c 75%, #d2b48c), linear-gradient(45deg, #d2b48c 25%, transparent 25%, transparent 75%, #d2b48c 75%, #d2b48c)`,
+                        backgroundSize: '60px 60px',
+                        backgroundPosition: `0 ${scrollOffset}%`
+                    }}
+                ></div>
+                <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                    <div className="w-[80%] h-[80%] border-8 border-[#8b4513] rotate-12"></div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-b from-[#e6d0b3] to-[#fdf6e3] mix-blend-multiply pointer-events-none"></div>
+            </div>
+        );
+    }
+
+    // Black Player: Digital Grid (Less gloomy than pure black)
+    if (character === Character.BLACK_PLAYER) {
+        return (
+            <div className="absolute inset-0 bg-slate-900 overflow-hidden">
+                 {/* Red Grid moving downwards */}
+                 <div 
+                    className="absolute inset-0"
+                    style={{ 
+                        backgroundImage: `linear-gradient(rgba(50, 0, 0, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(50, 0, 0, 0.5) 1px, transparent 1px)`,
+                        backgroundSize: '40px 40px',
+                        backgroundPosition: `0 ${scrollOffset}%`
+                    }}
+                ></div>
+                 <div 
+                    className="absolute inset-0 opacity-30 font-mono text-red-500 text-xs break-all leading-none"
+                    style={{ transform: `translateY(${scrollOffset * 0.2}%)` }}
+                >
+                    {Array(1000).fill(0).map(() => Math.random() > 0.8 ? '1' : ' ').join('')}
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-transparent to-red-950/80 opacity-80"></div>
+            </div>
+        );
+    }
+
+    // Default (Generic)
+    return (
+        <div className="absolute inset-0 bg-gray-800 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.1)_2px,transparent_2px),linear-gradient(to_right,rgba(255,255,255,0.1)_2px,transparent_2px)] bg-[size:50px_50px]" style={{ backgroundPosition: `0 ${scrollOffset}%` }}></div>
+    );
+};
+
 
 export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> = ({ onWin, onLose }) => {
     // --- Состояние ---
     const { character } = useSession();
     const { playSound } = useSettings();
 
+    // Adjusted settings for better playability
     const settings = useMemo(() => {
-        const baseSettings = { survivalTime: 30, baseScrollSpeed: 15, spawnRateMultiplier: 1 };
+        // Significantly increased gapWidth (safe zone size)
+        // Reduced spawnRateMultiplier to make obstacles less dense
+        const baseSettings = { survivalTime: 30, baseScrollSpeed: 15, spawnRateMultiplier: 0.6, gapWidth: 40 };
         switch(character) {
             case Character.KANILA: // Easy
-                return { survivalTime: 35, baseScrollSpeed: 12, spawnRateMultiplier: 0.7 };
+                return { survivalTime: 35, baseScrollSpeed: 12, spawnRateMultiplier: 0.5, gapWidth: 45 };
             case Character.BLACK_PLAYER: // Hard
-                return { survivalTime: 25, baseScrollSpeed: 18, spawnRateMultiplier: 1.4 };
+                return { survivalTime: 25, baseScrollSpeed: 20, spawnRateMultiplier: 0.8, gapWidth: 35 };
             default: // Medium (Sexism)
                 return baseSettings;
         }
@@ -91,10 +180,19 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
     const hasFinished = useRef(false);
     const obstacleId = useRef(0);
     const lastPlayerX = useRef(50); // Для вычисления наклона
+    const timeRef = useRef(0); // Total game time elapsed for sine wave calculations
 
     // --- Арт и константы ---
     const charArt = useMemo(() => CHARACTER_ART_MAP[character || Character.KANILA], [character]);
-    const obstacleTypes = useMemo(() => ['🎹', '🗿', 'АБСУРД', '♦', '📄', '🔥', '👟', '🍔'], []);
+    
+    // Character Specific Items
+    const obstacleTypes = useMemo(() => {
+        if (character === Character.KANILA) return ['💣', '💊', '🚧', '👾', '🔥', '🧱', '💸'];
+        if (character === Character.SEXISM) return ['🎨', '🖼️', '🗿', '👁️', '🎷', '🖌️', '🕰️'];
+        if (character === Character.BLACK_PLAYER) return ['0', '1', '☠️', '🕷️', '🌑', '⚠️', '🩸'];
+        return ['🎹', '🗿', 'АБСУРД', '♦', '📄', '🔥', '👟', '🍔'];
+    }, [character]);
+
     const PLAYER_Y_POS = 80; // Фиксированная вертикальная позиция игрока в %
     
     useEffect(() => {
@@ -105,6 +203,7 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
     useGameLoop(useCallback((deltaTime) => {
         if (hasFinished.current || status !== 'playing') return;
         const dtSec = deltaTime / 1000;
+        timeRef.current += dtSec;
 
         // --- Таймер и сложность ---
         const newTimeLeft = Math.max(0, timeLeft - dtSec);
@@ -118,28 +217,61 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
         }
         const progress = (settings.survivalTime - newTimeLeft) / settings.survivalTime;
         const scrollSpeed = settings.baseScrollSpeed + progress * 45;
-        const spawnChance = (0.08 + progress * 0.15) * settings.spawnRateMultiplier;
+        
+        // Spawn rate increases slightly but base is much lower now
+        const baseSpawnChance = 0.15; 
+        const spawnChance = (baseSpawnChance + progress * 0.1) * settings.spawnRateMultiplier;
 
         // --- Управление звуком пылесоса ---
-        const pitch = 1.0 + progress * 1.5; // Pitch increases from 1.0 to 2.5
+        const pitch = 1.0 + progress * 1.5; 
         updateMusicParameter('pitch', pitch);
 
         // --- Скроллинг фона ---
         setScrollOffset(offset => (offset + scrollSpeed * dtSec) % 100);
 
-        // --- Движение пылесоса ---
-        setVacuumX(x => 50 + Math.sin(Date.now() / 1000) * 40);
+        // --- Движение пылесоса (следит за центром безопасной зоны) ---
+        // Calculate the "Safe Corridor" center. 
+        const wave1 = Math.sin(timeRef.current * 0.8) * 30; // Slow large swing (reduced amplitude slightly)
+        const wave2 = Math.sin(timeRef.current * 2.0) * 8; // Fast small wobble
+        // Clamp safe zone to ensure it's not totally off screen
+        const safeZoneCenter = Math.max(15, Math.min(85, 50 + wave1 + wave2)); 
+        
+        setVacuumX(safeZoneCenter); // Vacuum follows the safe path to "guide" visually
 
-        // --- Появление препятствий ---
+        // --- Появление препятствий (THE CORRIDOR LOGIC REVISED) ---
         if (Math.random() < spawnChance) {
-            setObstacles(o => [...o, {
-                id: obstacleId.current++,
-                content: obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)],
-                x: 10 + Math.random() * 80, // Появляются по всей ширине
-                y: -5, // Появляются сверху
-                size: 2 + Math.random() * 3, // Размер в vmin
-                rot: Math.random() * 360
-            }]);
+            // Attempt to spawn items across the width
+            // Reduced cluster size to prevent walls
+            const clusterSize = 1 + Math.floor(Math.random() * 2); 
+            
+            for(let i=0; i<clusterSize; i++) {
+                // Random position across FULL width (0-100)
+                const candidateX = Math.random() * 100;
+                
+                // Safe zone is [safeZoneCenter - gap/2, safeZoneCenter + gap/2]
+                // We use a larger gap width now to make it passable
+                const distFromSafe = Math.abs(candidateX - safeZoneCenter);
+                
+                if (distFromSafe > settings.gapWidth / 2) {
+                    setObstacles(o => [...o, {
+                        id: obstacleId.current++,
+                        content: obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)],
+                        x: candidateX,
+                        y: -10 - Math.random() * 15, // Spread out vertically a bit more
+                        size: 3 + Math.random() * 2, // Размер в vmin
+                        rot: Math.random() * 360
+                    }]);
+                }
+            }
+            
+            // Edge Guard: Occasionally spawn at very edges to prevent camping, but less frequently
+            // Reduced chance from 0.5 to 0.2
+            if (safeZoneCenter > 30 && Math.random() < 0.2) {
+                 setObstacles(o => [...o, { id: obstacleId.current++, content: obstacleTypes[0], x: 2 + Math.random()*3, y: -10, size: 3, rot: 0 }]);
+            }
+            if (safeZoneCenter < 70 && Math.random() < 0.2) {
+                 setObstacles(o => [...o, { id: obstacleId.current++, content: obstacleTypes[0], x: 95 + Math.random()*3, y: -10, size: 3, rot: 0 }]);
+            }
         }
 
         // --- Движение и столкновения препятствий ---
@@ -150,8 +282,15 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
                 const newY = o.y + scrollSpeed * dtSec;
                 if (newY > 110) continue; // Исчезают за экраном
 
-                // Проверка столкновения
-                const obsRect = { x: o.x - o.size / 2, y: newY - o.size / 2, width: o.size, height: o.size };
+                // Проверка столкновения with a slightly more forgiving hitbox
+                const hitBoxShrink = 0.2; // Shrink item hitbox by 20%
+                const obsRect = { 
+                    x: o.x - (o.size * (1 - hitBoxShrink)) / 2, 
+                    y: newY - (o.size * (1 - hitBoxShrink)) / 2, 
+                    width: o.size * (1 - hitBoxShrink), 
+                    height: o.size * (1 - hitBoxShrink) 
+                };
+                
                  if (
                     playerRect.x < obsRect.x + obsRect.width &&
                     playerRect.x + playerRect.width > obsRect.x &&
@@ -208,14 +347,15 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
             onTouchStart={handlePointerMove}
             className="w-full h-full bg-gray-900 flex flex-col items-center relative overflow-hidden cursor-none"
         >
-            {/* Фон */}
-            <div className="absolute inset-0 bg-gray-800 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.1)_2px,transparent_2px),linear-gradient(to_right,rgba(255,255,255,0.1)_2px,transparent_2px)] bg-[size:50px_50px]" style={{ backgroundPosition: `0 ${scrollOffset}%` }}></div>
+            <ThemedBackground character={character} scrollOffset={scrollOffset} />
 
             {status === 'lost' && <div className="absolute inset-0 bg-black/80 z-50 flex items-center justify-center text-7xl text-red-500 animate-ping">ЗАСОСАЛО</div>}
             {status === 'won' && <ZasosPylesosaWinScreen onContinue={handleWinContinue} charArt={charArt} />}
 
             {status === 'playing' && <>
-                <div className="absolute top-16 text-3xl z-40 text-white">УБЕГАЙ: {Math.ceil(timeLeft)}</div>
+                <div className="absolute top-16 text-3xl z-40 text-white font-bold" style={{textShadow: '2px 2px 0 #000'}}>
+                    {Math.ceil(timeLeft)}
+                </div>
 
                 {/* Игрок */}
                 <div id="player-character" className="absolute z-30 pointer-events-none" style={{
@@ -234,15 +374,21 @@ export const ZasosPylesosa: React.FC<{ onWin: () => void; onLose: () => void }> 
                         top: `${o.y}%`,
                         fontSize: `${o.size}vmin`,
                         transform: `translate(-50%, -50%) rotate(${o.rot}deg)`,
+                        textShadow: character === Character.KANILA ? '2px 2px 0 #0f0' : '2px 2px 0 #000'
                     }}>
                         {o.content}
                     </div>
                 ))}
                 
-                {/* Пылесос */}
-                <div className="absolute bottom-0 z-10" style={{ left: `${vacuumX}%`, transform: 'translateX(-50%)' }}>
+                {/* Пылесос (Следует за безопасной зоной, чтобы путать или подсказывать?) */}
+                <div className="absolute bottom-[-10px] z-10 transition-transform duration-100" style={{ left: `${vacuumX}%`, transform: 'translateX(-50%)' }}>
                     <PixelVacuum animationToggle={Math.floor(timeLeft*2)%2 === 0}/>
                 </div>
+                
+                {/* Визуализация потока воздуха в безопасную зону для красоты */}
+                <div className="absolute inset-0 pointer-events-none opacity-20 z-0" style={{
+                    background: `radial-gradient(circle at ${vacuumX}% 100%, transparent 10%, ${character === Character.BLACK_PLAYER ? 'rgba(255,0,0,0.1)' : 'rgba(255,255,255,0.1)'} 50%)`
+                }}></div>
             </>}
         </div>
     );
