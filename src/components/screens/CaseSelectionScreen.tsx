@@ -161,6 +161,19 @@ export const CaseSelectionScreen: React.FC = () => {
       };
   }, [handleInteract, handleJump]);
 
+  // Mobile Touch Handlers
+  const handleTouchStart = (key: string, e: React.TouchEvent) => {
+      // Prevent default to stop scrolling/selection behaviors
+      if (e.cancelable) e.preventDefault(); 
+      keysPressed.current[key] = true;
+      if (key === 'ArrowUp') handleJump();
+  };
+
+  const handleTouchEnd = (key: string, e: React.TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+      keysPressed.current[key] = false;
+  };
+
   // --- Physics Loop ---
   useGameLoop(useCallback((deltaTime) => {
       const left = keysPressed.current['ArrowLeft'] || keysPressed.current['KeyA'];
@@ -377,35 +390,67 @@ export const CaseSelectionScreen: React.FC = () => {
             </div>
         </div>
 
-        {/* Mobile Controls - Rendered ONLY if isMobile is true */}
+        {/* Mobile Controls Overlay */}
         {isMobile && (
-            <div className="absolute bottom-8 left-0 w-full flex justify-between px-8 pointer-events-auto z-50">
-                <div className="flex gap-6">
-                    <button 
-                        className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-full flex items-center justify-center text-4xl active:bg-white/30 backdrop-blur-sm"
-                        onTouchStart={(e) => { e.preventDefault(); keysPressed.current['ArrowLeft'] = true; }}
-                        onTouchEnd={(e) => { e.preventDefault(); keysPressed.current['ArrowLeft'] = false; }}
-                    >←</button>
-                    <button 
-                        className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-full flex items-center justify-center text-4xl active:bg-white/30 backdrop-blur-sm"
-                        onTouchStart={(e) => { e.preventDefault(); keysPressed.current['ArrowRight'] = true; }}
-                        onTouchEnd={(e) => { e.preventDefault(); keysPressed.current['ArrowRight'] = false; }}
-                    >→</button>
+            <div 
+                className="absolute bottom-4 left-0 w-full flex justify-between px-6 pointer-events-none z-50 select-none touch-none"
+            >
+                {/* Directional Pad + Jump Cluster (Left) */}
+                <div className="relative w-48 h-32 pointer-events-auto opacity-70">
+                    <div className="absolute bottom-0 left-0 flex gap-4 items-end">
+                        {/* Left Arrow */}
+                        <button 
+                            className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-lg flex items-center justify-center active:bg-white/30 backdrop-blur-sm shadow-lg"
+                            onTouchStart={(e) => handleTouchStart('ArrowLeft', e)}
+                            onTouchEnd={(e) => handleTouchEnd('ArrowLeft', e)}
+                            onContextMenu={(e) => e.preventDefault()}
+                        >
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                        </button>
+
+                        {/* Jump Button (Up Arrow) - Positioned slightly higher/between */}
+                        <button 
+                            className="w-20 h-20 mb-8 bg-blue-500/30 border-2 border-blue-300/50 rounded-lg flex items-center justify-center active:bg-blue-500/50 backdrop-blur-sm shadow-lg"
+                            onTouchStart={(e) => handleTouchStart('ArrowUp', e)} // Jump handler inside touchStart
+                            onTouchEnd={(e) => handleTouchEnd('ArrowUp', e)}
+                            onContextMenu={(e) => e.preventDefault()}
+                        >
+                             <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"/></svg>
+                        </button>
+
+                        {/* Right Arrow */}
+                        <button 
+                            className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-lg flex items-center justify-center active:bg-white/30 backdrop-blur-sm shadow-lg"
+                            onTouchStart={(e) => handleTouchStart('ArrowRight', e)}
+                            onTouchEnd={(e) => handleTouchEnd('ArrowRight', e)}
+                            onContextMenu={(e) => e.preventDefault()}
+                        >
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="white"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+                        </button>
+                    </div>
                 </div>
-                <div className="flex gap-6">
-                    <button 
-                        className="w-20 h-20 bg-blue-500/30 border-2 border-blue-300/50 rounded-full flex items-center justify-center text-2xl font-bold active:bg-blue-500/50 backdrop-blur-sm"
-                        onTouchStart={(e) => { e.preventDefault(); handleJump(); }}
-                    >
-                        JUMP
-                    </button>
+
+                {/* Interact Button (Right) - DaDa Graphic */}
+                <div className="flex items-end pointer-events-auto">
                     {activeDoorId !== null && (
                         <button 
-                            className="w-24 h-24 bg-yellow-500 border-4 border-black rounded-full flex items-center justify-center text-xl font-bold animate-pulse text-black shadow-lg"
-                            onTouchEnd={(e) => { e.preventDefault(); handleInteract(); }}
-                            onClick={handleInteract}
+                            className="w-24 h-24 bg-yellow-500 border-4 border-black rounded-full flex items-center justify-center animate-pulse shadow-lg active:scale-95 transition-transform"
+                            onTouchStart={(e) => { 
+                                if (e.cancelable) e.preventDefault();
+                                handleInteract(); 
+                            }}
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleInteract();
+                            }}
+                            onContextMenu={(e) => e.preventDefault()}
                         >
-                            ВХОД
+                            {/* Graphic "DaDa" to prevent text selection */}
+                            <svg width="60" height="40" viewBox="0 0 60 40">
+                                <path d="M10 30 L10 10 L20 10 L20 15 L25 15 L25 30 L20 30 L20 20 L15 20 L15 30 Z" fill="black" />
+                                <path d="M30 30 L35 10 L40 10 L45 30 L40 30 L39 25 L36 25 L35 30 Z M37 20 L38 20 L37.5 15 Z" fill="black" />
+                                <path d="M5 5 L5 35 L55 35" fill="none" stroke="black" strokeWidth="2" opacity="0.3"/>
+                            </svg>
                         </button>
                     )}
                 </div>
