@@ -117,7 +117,7 @@ export const HUD: React.FC = () => {
                         <button onClick={activateFourthWall} disabled={abilityUsedInSession} className={`pixel-button text-xl !p-2 ${abilityUsedInSession ? 'pixel-button-locked' : 'bg-purple-700'}`}>СЛОМ</button>
                     )}
                     {character === Character.BLACK_PLAYER && activeProfile?.hasDadaToken && (
-                        <button onClick={activateAbsurdEdge} disabled={absurdEdgeUsedInSession || screen !== GameScreen.MINIGAME_INTRO} className={`pixel-button text-xl !p-2 ${(absurdEdgeUsedInSession || screen !== GameScreen.MINIGAME_INTRO) ? 'pixel-button-locked' : 'bg-pink-600'}`} title={screen !== GameScreen.MINIGAME_INTRO ? "Можно использовать только перед началом мини-игры" : "Активировать Грань Абсурда"}>ГРАНЬ</button>
+                        <button onClick={activateAbsurdEdge} disabled={absurdEdgeUsedInSession || screen !== GameScreen.MINIGAME_INTRO} className={`pixel-button text-xl !p-2 ${(absurdEdgeUsedInSession || screen !== GameScreen.MINIGAME_INTRO) ? 'pixel-button-locked' : 'bg-pink-600'}`} title={screen !== GameScreen.MINIGAME_INTRO ? "Можно использовать только перед началом сна" : "Активировать Грань Абсурда"}>ГРАНЬ</button>
                     )}
                 </div>
             </div>

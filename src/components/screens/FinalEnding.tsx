@@ -151,7 +151,7 @@ export const FinalEnding: React.FC = () => {
                  <div className="w-full h-full flex flex-col items-center justify-center text-center animate-[fadeIn_3s_ease-in-out]">
                     <div className="my-16 text-6xl">ВСЁ. ИДИТЕ ВОН.</div>
                     <button onClick={handleReset} className="pixel-button p-4 text-2xl">
-                        ВЫБРАТЬ ДРУГОГО ДАДАИСТА
+                        ИСПЫТАТЬ ДРУГОЕ БИОСУЩЕСТВО
                     </button>
                 </div>
             )

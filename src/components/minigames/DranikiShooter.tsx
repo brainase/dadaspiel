@@ -6,11 +6,10 @@ import { SoundType, MusicType, startMusic, stopMusic } from '../../utils/AudioEn
 import { MinigameHUD } from '../core/MinigameHUD';
 import { Character } from '../../../types';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { DynamicSky } from '../core/DynamicSky';
 
 // --- Constants & Types ---
-const SCREEN_WIDTH = 320;
-const SCREEN_HEIGHT = 200;
-const FOV = Math.PI / 3;
+const INTERNAL_HEIGHT = 200; // Fixed vertical resolution for pixelated look
 const MAP_SIZE = 24; 
 const MAX_DEPTH = 24;
 const MAX_UNDADA = 100;
@@ -89,6 +88,7 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
     const isMobile = useIsMobile();
     
     // --- Refs for Game Loop ---
+    const wrapperRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const mapRef = useRef<number[][]>(Array(MAP_SIZE).fill(0).map(() => Array(MAP_SIZE).fill(0)));
     const secretPaintingLoc = useRef<{x: number, y: number} | null>(null);
@@ -125,10 +125,30 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
     const controlsInvertedTimer = useRef(0);
 
     // --- State for React UI ---
-    const [hudState, setHudState] = useState({ hp: 100, round: 0, bossHp: 0, weaponFrame: 0, message: "", undada: 0, weaponName: "" });
+    const [hudState, setHudState] = useState({ hp: 100, round: 0, bossHp: 0, weaponFrame: 0, message: "", undada: 0, weaponName: "", weaponSymbol: "" });
     const [status, setStatus] = useState<'initializing' | 'waiting' | 'playing' | 'won' | 'lost' | 'canceled'>('initializing');
     const [notifications, setNotifications] = useState<GameNotification[]>([]);
+    const [canvasSize, setCanvasSize] = useState({ width: 320, height: INTERNAL_HEIGHT });
     const notifIdCounter = useRef(0);
+
+    // --- Dynamic Resolution ---
+    useEffect(() => {
+        if (!wrapperRef.current) return;
+        const resizeObserver = new ResizeObserver(() => {
+            if (wrapperRef.current) {
+                const { clientWidth, clientHeight } = wrapperRef.current;
+                // Calculate width to maintain square pixels based on container aspect ratio
+                // ratio = width / height. Internal Height = 200. Internal Width = 200 * ratio.
+                const ratio = clientWidth / clientHeight;
+                const newWidth = Math.floor(INTERNAL_HEIGHT * ratio);
+                // Ensure even width for cleaner raycasting loops
+                const evenWidth = newWidth % 2 === 0 ? newWidth : newWidth + 1;
+                setCanvasSize({ width: evenWidth, height: INTERNAL_HEIGHT });
+            }
+        });
+        resizeObserver.observe(wrapperRef.current);
+        return () => resizeObserver.disconnect();
+    }, []);
 
     // --- Helpers ---
     const isWall = (x: number, y: number) => {
@@ -397,6 +417,9 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
 
     // --- Game Logic ---
     const update = (dtMs: number) => {
+        // IMPORTANT: Pause game logic if instruction modal is open
+        if (isInstructionModalVisible) return;
+
         const dt = (dtMs / 1000) * timeScale.current; 
         const player = playerRef.current;
         const ents = entitiesRef.current;
@@ -744,7 +767,7 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
             setTimeout(() => { playSound(SoundType.PLAYER_LOSE); onLose(); }, 2000);
         }
 
-        setHudState({ hp: player.hp, round: currentRound.current, bossHp: totalBossHp, weaponFrame: weaponRecoil.current > 0.5 ? 1 : 0, message: hudMessage, undada: undadastandingRef.current, weaponName: WEAPONS[player.currentWeapon].name });
+        setHudState({ hp: player.hp, round: currentRound.current, bossHp: totalBossHp, weaponFrame: weaponRecoil.current > 0.5 ? 1 : 0, message: hudMessage, undada: undadastandingRef.current, weaponName: WEAPONS[player.currentWeapon].name, weaponSymbol: WEAPONS[player.currentWeapon].symbol });
     };
 
     // --- Rendering ---
@@ -754,27 +777,30 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const w = SCREEN_WIDTH;
-        const h = SCREEN_HEIGHT;
+        // Use current internal canvas dimensions
+        const w = canvas.width;
+        const h = canvas.height;
         const player = playerRef.current;
 
-        // 1. Draw Floor and Ceiling
-        const ceilGrad = ctx.createLinearGradient(0, 0, 0, h/2);
-        ceilGrad.addColorStop(0, '#111');
-        ceilGrad.addColorStop(1, '#333');
-        ctx.fillStyle = ceilGrad;
-        ctx.fillRect(0, 0, w, h/2);
+        // 1. Clear the canvas fully to allow DynamicSky to show through
+        ctx.clearRect(0, 0, w, h);
 
+        // 2. Draw Floor ONLY (Remove Ceiling Drawing)
         const floorGrad = ctx.createLinearGradient(0, h/2, 0, h);
         floorGrad.addColorStop(0, '#333');
         floorGrad.addColorStop(1, '#555');
         ctx.fillStyle = floorGrad;
         ctx.fillRect(0, h/2, w, h/2);
 
-        // 2. Wall Casting
+        // 3. Wall Casting
         const zBuffer = new Array(w).fill(0);
 
-        for (let x = 0; x < w; x+=2) {
+        // Use a slight step adjustment or ensure integer increments to match pixels if needed,
+        // but for dynamic width, iterating pixel by pixel (or every 2nd) works fine.
+        // If we want consistent "fat pixels", we should adjust step based on ratio, but simple step=2 is generally ok.
+        const rayStep = 2;
+
+        for (let x = 0; x < w; x+=rayStep) {
             const cameraX = 2 * x / w - 1;
             const rayDirX = Math.cos(player.dir) + player.planeX * cameraX;
             const rayDirY = Math.sin(player.dir) + player.planeY * cameraX;
@@ -802,7 +828,10 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
             if (side === 0) perpWallDist = (mapX - player.x + (1 - stepX) / 2) / rayDirX;
             else            perpWallDist = (mapY - player.y + (1 - stepY) / 2) / rayDirY;
 
-            zBuffer[x] = perpWallDist; zBuffer[x+1] = perpWallDist;
+            // Fill Z-buffer for all pixels in this strip
+            for(let k=0; k<rayStep; k++) {
+                if (x+k < w) zBuffer[x+k] = perpWallDist;
+            }
 
             const lineHeight = Math.floor(h / perpWallDist);
             const drawStart = Math.max(0, -lineHeight / 2 + h / 2);
@@ -822,7 +851,7 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
             const b = bossPhase.current ? 0 : wallColorValue;
 
             ctx.fillStyle = `rgb(${r},${g},${b})`;
-            ctx.fillRect(x, drawStart, 2, drawEnd - drawStart);
+            ctx.fillRect(x, drawStart, rayStep, drawEnd - drawStart);
 
             if (mapValue === 3 || mapValue === 4) {
                 const wallHeight = drawEnd - drawStart;
@@ -832,7 +861,7 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
                 if (perpWallDist < 15) {
                     const frameColor = side === 1 ? '#b8860b' : '#ffd700';
                     ctx.fillStyle = frameColor;
-                    ctx.fillRect(x, paintingTop, 2, paintingHeight); 
+                    ctx.fillRect(x, paintingTop, rayStep, paintingHeight); 
                     
                     let artColor = '#fff';
                     if (bossPhase.current) {
@@ -852,7 +881,7 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
                     const canvasHeight = paintingHeight * 0.8;
                     const canvasTop = paintingTop + (paintingHeight - canvasHeight) / 2;
                     ctx.fillStyle = artColor;
-                    ctx.fillRect(x, canvasTop, 2, canvasHeight);
+                    ctx.fillRect(x, canvasTop, rayStep, canvasHeight);
                     
                     // Specific detail for 317 Painting
                     if (mapValue === 4) {
@@ -860,13 +889,13 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
                         const textTop = canvasTop + (canvasHeight - textHeight) / 2;
                         ctx.fillStyle = '#000';
                         // Draw simple bars to simulate "317" text roughly
-                        ctx.fillRect(x, textTop, 2, textHeight / 3);
+                        ctx.fillRect(x, textTop, rayStep, textHeight / 3);
                     }
                 }
             }
         }
 
-        // 3. Sprite Casting
+        // 4. Sprite Casting
         const sprites = entitiesRef.current
             .filter(e => e.active)
             .map(e => ({...e, dist: ((player.x - e.x)**2 + (player.y - e.y)**2) }))
@@ -940,12 +969,13 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
             }
         }
 
-        // 4. Weapon
+        // 5. Weapon
         const currentWeapon = WEAPONS[player.currentWeapon];
         const bobX = Math.cos(weaponBob.current) * 10;
         const bobY = Math.abs(Math.sin(weaponBob.current)) * 10;
         const recoilY = weaponRecoil.current * 40;
-        const weaponX = w / 2 + 60 + bobX;
+        // Weapon positioning needs to scale with width slightly or stay centered
+        const weaponX = w / 2 + 60 + bobX; 
         const weaponY = h - bobY + recoilY;
 
         ctx.font = '120px sans-serif';
@@ -1001,7 +1031,13 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
     };
 
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-black relative touch-none select-none overflow-hidden">
+        <div 
+            ref={wrapperRef}
+            className="w-full h-full flex flex-col items-center justify-center relative touch-none select-none overflow-hidden"
+        >
+            {/* Dynamic Sky is placed BEHIND the canvas */}
+            <DynamicSky />
+
             {status === 'won' && <DranikiShooterWinScreen onContinue={onWin} />}
             {status === 'lost' && <div className="absolute inset-0 bg-red-900/80 z-20 flex items-center justify-center text-5xl font-mono text-white">ВЫ ПОГИБЛИ</div>}
             {status === 'canceled' && <div className="absolute inset-0 bg-purple-900/90 z-20 flex flex-col items-center justify-center text-center text-white px-4"><h2 className="text-4xl mb-4 font-bold">ВЫ ОТМЕНЕНЫ</h2><p className="text-xl">Сообщество не простило насилия над зрителем.</p></div>}
@@ -1012,7 +1048,10 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
                         <span className="text-xl text-red-500">HP: {Math.ceil(hudState.hp)}%</span>
                         <div className="flex flex-col items-center">
                             <span className="text-yellow-400 text-xl">{hudState.message}</span>
-                            <span className="text-gray-400 text-sm">{hudState.weaponName}</span>
+                            <div className="flex items-center gap-2 mt-1 bg-gray-800/80 px-3 py-1 rounded border border-gray-600">
+                                <span className="text-2xl">{hudState.weaponSymbol}</span>
+                                <span className="text-white text-lg tracking-wider">{hudState.weaponName}</span>
+                            </div>
                         </div>
                         {bossPhase.current && <span className="animate-pulse text-red-600 text-xl">BOSS: {Math.ceil(hudState.bossHp)}</span>}
                     </div>
@@ -1037,17 +1076,17 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
 
             <canvas 
                 ref={canvasRef} 
-                width={SCREEN_WIDTH} 
-                height={SCREEN_HEIGHT} 
-                className="w-full h-full object-contain bg-gray-900 pixelated-canvas"
-                style={{ imageRendering: 'pixelated' }}
+                width={canvasSize.width} 
+                height={canvasSize.height} 
+                className="w-full h-full absolute inset-0 z-10 pixelated-canvas"
+                style={{ imageRendering: 'pixelated', backgroundColor: 'transparent' }} 
             />
             
             {/* Mobile Controls Overlay - Uses useIsMobile hook */}
             {isMobile && (
                 <div className="absolute inset-0 pointer-events-none z-40 flex flex-col justify-end pb-8 px-4">
                     <div className="flex justify-between items-end">
-                        <div className="relative w-48 h-48 pointer-events-auto opacity-60">
+                        <div className="relative w-48 h-48 pointer-events-auto opacity-80">
                             <div className="absolute top-0 left-1/3 w-1/3 h-1/3 bg-gray-700/80 rounded-t flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
                                 onTouchStart={(e) => handleTouchStart('KeyW', e)} onTouchEnd={(e) => handleTouchEnd('KeyW', e)}>▲</div>
                             <div className="absolute bottom-0 left-1/3 w-1/3 h-1/3 bg-gray-700/80 rounded-b flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"

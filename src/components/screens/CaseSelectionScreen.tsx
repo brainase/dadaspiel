@@ -8,6 +8,7 @@ import { DOOR_ART_MAP, STOP_SIGN_ART, BACKGROUND_ASSETS, PLATFORM_ASSETS, BISON_
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character, SeasonalEvent } from '../../../types';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { DynamicSky } from '../core/DynamicSky';
 
 // --- Constants & Config ---
 const GRAVITY = 0.0015;
@@ -301,16 +302,7 @@ export const CaseSelectionScreen: React.FC = () => {
           // Platform Collisions
           if (newVy <= 0) {
               for (const plat of platforms) {
-                  // Standard box collision for top of platform
-                  const platLeft = plat.x; // Render uses plat.x as left for standard, mid for art? 
-                  // Let's standardize: plat.x is LEFT edge for standard, CENTER for art?
-                  // To keep simple: let's treat plat.x as LEFT edge for Standard, and LEFT edge for Art (adjusted in rendering)
-                  
                   // Adjusted collision box:
-                  // Standard: x to x+w
-                  // Art: x-w/2 to x+w/2 (centered visual) -> Let's make logic match visual.
-                  // For simplicity in loop, let's say plat.x is always LEFT edge of hitbox.
-                  
                   const hitLeft = plat.type === 'art' ? plat.x - plat.w/2 : plat.x;
                   const hitRight = plat.type === 'art' ? plat.x + plat.w/2 : plat.x + plat.w;
 
@@ -364,11 +356,6 @@ export const CaseSelectionScreen: React.FC = () => {
   const screenWidth = containerRef.current ? containerRef.current.clientWidth : 800;
   const cameraX = Math.max(0, Math.min(WORLD_WIDTH - screenWidth, player.x - screenWidth / 2));
 
-  const bgR = Math.max(20, 30 + Math.sin(player.x / 1000) * 20);
-  const bgG = Math.max(10, 20 + Math.cos(player.x / 1000) * 10);
-  const bgB = Math.max(30, 40 - Math.sin(player.x / 1000) * 20);
-  const bgStyle = { backgroundColor: `rgb(${bgR}%, ${bgG}%, ${bgB}%)` };
-
   // Landmarks parallax (Distant)
   const landmarks = [
       { id: 1, x: 200, y: 120, art: BISON_SILHOUETTE, scale: 6, opacity: 0.3 },
@@ -378,12 +365,13 @@ export const CaseSelectionScreen: React.FC = () => {
   ];
 
   return (
-    <div className="w-full h-full relative overflow-hidden font-mono transition-colors duration-1000" style={bgStyle} ref={containerRef}>
+    <div className="w-full h-full relative overflow-hidden font-mono" ref={containerRef}>
         
-        <div className="absolute inset-0 opacity-20" style={{background: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '50px 50px'}}></div>
+        {/* Background Sky Layer (Static/Parallax base) */}
+        <DynamicSky />
 
         <div 
-            className="absolute top-0 left-0 h-full transition-transform duration-75 ease-linear will-change-transform"
+            className="absolute top-0 left-0 h-full transition-transform duration-75 ease-linear will-change-transform z-10"
             style={{ 
                 width: `${WORLD_WIDTH}px`,
                 transform: `translateX(${-cameraX}px)` 
@@ -445,8 +433,6 @@ export const CaseSelectionScreen: React.FC = () => {
                                     {asset.content}
                                 </div>
                             ) : null}
-                            {/* Debug hitbox (optional, commented out) */}
-                            {/* <div className="absolute bottom-0 w-full h-[20px] bg-red-500/30"></div> */}
                         </div>
                     );
                 } else {
@@ -532,14 +518,6 @@ export const CaseSelectionScreen: React.FC = () => {
             </div>
         </div>
 
-        {/* HUD */}
-        <div className="absolute top-10 left-0 w-full p-4 flex justify-center items-start pointer-events-none">
-            <div className="bg-purple-900/80 p-2 border-2 border-cyan-400 text-white pointer-events-auto max-w-md text-center">
-                <h1 className="text-xl font-bold text-yellow-300">БИОСУЩЕСТВО</h1>
-                <p className="text-l mt-1 text-lime-300">{activeProfile?.name}</p>
-            </div>
-        </div>
-
         {/* Mobile Controls */}
         {isMobile && (
             <div className="absolute bottom-4 left-0 w-full flex justify-between px-6 pointer-events-none z-50 select-none touch-none">
@@ -560,7 +538,7 @@ export const CaseSelectionScreen: React.FC = () => {
             </div>
         )}
         
-        {!isMobile && <div className="absolute bottom-4 w-full text-center text-white/30 text-sm pointer-events-none">[←][→] Move &nbsp;&nbsp; [SPACE/UP] Jump &nbsp;&nbsp; [ENTER] Enter</div>}
+        {!isMobile && <div className="absolute bottom-4 w-full text-center text-white/30 text-sm pointer-events-none z-50">[←][→] Move &nbsp;&nbsp; [SPACE/UP] Jump &nbsp;&nbsp; [ENTER] Enter</div>}
     </div>
   );
 };

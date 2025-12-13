@@ -123,7 +123,7 @@ export const DebugMenu: React.FC = () => {
                 </button>
             </div>
 
-            <h3 className="text-2xl mt-6 mb-2">Мини-игры</h3>
+            <h3 className="text-2xl mt-6 mb-2">Сны</h3>
             <div className="w-full grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                 {ALL_MINIGAMES.map(mg => (
                     <button key={mg.id} onClick={() => handleActionClick(() => jumpToMinigame(mg.id))} className="pixel-button p-2">

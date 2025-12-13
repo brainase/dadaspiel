@@ -486,7 +486,14 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const jumpToMinigame = useCallback((id: string) => {
         for (const c of dynamicCases) {
             const mgIndex = c.minigames.findIndex(mg => mg.id === id);
-            if (mgIndex !== -1) { logEvent(`Jumping to minigame: ${id}`); setCurrentCase(c); setMinigameIndex(mgIndex); setScreen(GameScreen.MINIGAME_PLAY); return; }
+            if (mgIndex !== -1) { 
+                logEvent(`Jumping to minigame: ${id}`); 
+                setCurrentCase(c); 
+                setMinigameIndex(mgIndex); 
+                setScreen(GameScreen.MINIGAME_PLAY);
+                setIsInstructionModalOpen(true); // Open instructions automatically
+                return; 
+            }
         }
     }, [logEvent, dynamicCases]);
 
