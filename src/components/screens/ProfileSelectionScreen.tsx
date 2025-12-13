@@ -86,7 +86,7 @@ export const ProfileSelectionScreen: React.FC = () => {
             </div>
             <div className="flex gap-4">
                  <button onClick={handleNewGame} className="pixel-button p-4 text-2xl">
-                    Новый игрок
+                    Создать
                 </button>
                  <button onClick={handleLeaderboard} className="pixel-button p-4 text-2xl bg-teal-700">
                     Рекорды

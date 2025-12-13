@@ -184,7 +184,7 @@ export const PereverniKalendarWinScreen: React.FC<{ onContinue: () => void; onPl
             </div>
              {/* РЕГУЛИРОВКА: animationDelay в `animate-[...]` отвечает за время появления кнопки "Продолжить" */}
             <button onClick={onContinue} className="pixel-button absolute bottom-8 p-4 text-2xl z-50 bg-green-700 hover:bg-green-800 opacity-0 animate-[fadeInText_1s_6s_ease-out_forwards]">
-                ПРОДОЛЖИТЬ
+                ПЕРЕВЕРНУТЬ
             </button>
         </div>
     );

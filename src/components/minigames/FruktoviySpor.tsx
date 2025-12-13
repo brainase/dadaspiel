@@ -129,7 +129,7 @@ export const BlackPlayerBecomingWinScreen: React.FC<{ onContinue: () => void, on
             {/* Кнопка появляется с задержкой для драматического эффекта */}
             <div className="absolute bottom-8 w-full flex justify-center opacity-0 animate-[fadeIn_1s_2s_forwards]">
                 <button onClick={onContinue} className="pixel-button p-4 text-2xl z-50 bg-red-800 hover:bg-red-700">
-                    ПРОДОЛЖИТЬ
+                    ПРОЙДОХИМ
                 </button>
             </div>
         </div>

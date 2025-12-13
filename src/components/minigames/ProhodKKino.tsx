@@ -161,7 +161,7 @@ export const ProhodKKinoWinScreen: React.FC<{ onContinue: () => void; isMuted: b
                  <button onClick={handlePlayVideo} className="pixel-button p-4 text-2xl bg-yellow-600 text-black">
                     ПОСЛЕСЛОВИЕ
                  </button>
-                 <button onClick={handleBack} className="pixel-button absolute bottom-8 p-4 text-xl">ПРОДОЛЖИТЬ</button>
+                 <button onClick={handleBack} className="pixel-button absolute bottom-8 p-4 text-xl">ПРОЙДЁМТЕ</button>
                  {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
             </div>
         );

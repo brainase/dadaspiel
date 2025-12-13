@@ -15,7 +15,7 @@ export const OutroScreen: React.FC<{ title: string, text: string, onContinue: ()
             <h2 className="text-4xl mb-4">{title}</h2>
             <p className="text-xl mb-8 max-w-prose">{text}</p>
             <button onClick={handleContinue} className="pixel-button p-4 text-2xl">
-                ПРОДОЛЖИТЬ
+                ПРОдадаЖИТЬ
             </button>
         </div>
     );

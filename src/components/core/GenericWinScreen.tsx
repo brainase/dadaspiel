@@ -9,7 +9,7 @@ interface GenericWinScreenProps {
     children?: React.ReactNode; // For custom background animations
 }
 
-export const GenericWinScreen: React.FC<GenericWinScreenProps> = ({ title, text, buttonText = "ПРОДОЛЖИТЬ", onContinue, children }) => {
+export const GenericWinScreen: React.FC<GenericWinScreenProps> = ({ title, text, buttonText = "ПРОЙДЁМТЕ", onContinue, children }) => {
     return (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 text-center text-white p-4 animate-[fadeIn_0.5s]">
             {children}
