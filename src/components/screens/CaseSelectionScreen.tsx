@@ -7,6 +7,7 @@ import { CHARACTER_ART_MAP, PIXEL_ART_PALETTE } from '../../../characterArt';
 import { DOOR_ART_MAP, BISON_SILHOUETTE, TRACTOR_SILHOUETTE, LIBRARY_SILHOUETTE, STORK_SILHOUETTE, STOP_SIGN_ART } from '../../miscArt';
 import { useGameLoop } from '../../hooks/useGameLoop';
 import { Character } from '../../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // --- Constants & Config ---
 const GRAVITY = 0.0015;
@@ -46,6 +47,7 @@ export const CaseSelectionScreen: React.FC = () => {
   const { activeProfile, dynamicCases: CASES } = useProfile();
   const { playSound } = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // --- State ---
   const [player, setPlayer] = useState({ x: 100, y: GROUND_LEVEL, vx: 0, vy: 0, grounded: true, facingRight: true });
@@ -368,49 +370,54 @@ export const CaseSelectionScreen: React.FC = () => {
         </div>
 
         {/* HUD Overlay */}
-        <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start pointer-events-none">
-            <div className="bg-black/70 p-4 border-l-4 border-yellow-400 text-white pointer-events-auto max-w-md">
-                <h1 className="text-xl font-bold text-yellow-300">ПРОСПЕКТ ДАДАИЗМА</h1>
-                <p className="text-xs mt-1 text-gray-300">Путь: {activeProfile?.name}</p>
+        <div className="absolute top-10 left-0 w-full p-4 flex justify-center items-start pointer-events-none">
+            <div className="bg-purple-900/80 p-2 border-2 border-cyan-400 text-white pointer-events-auto max-w-md text-center">
+                <h1 className="text-xl font-bold text-yellow-300">БИОСУЩЕСТВО</h1>
+                <p className="text-s mt-1 text-gray-300">{activeProfile?.name}</p>
             </div>
         </div>
 
-        {/* Mobile Controls */}
-        <div className="absolute bottom-8 left-0 w-full flex justify-between px-8 md:hidden pointer-events-auto z-50">
-            <div className="flex gap-6">
-                <button 
-                    className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-full flex items-center justify-center text-4xl active:bg-white/30 backdrop-blur-sm"
-                    onTouchStart={(e) => { e.preventDefault(); keysPressed.current['ArrowLeft'] = true; }}
-                    onTouchEnd={(e) => { e.preventDefault(); keysPressed.current['ArrowLeft'] = false; }}
-                >←</button>
-                <button 
-                    className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-full flex items-center justify-center text-4xl active:bg-white/30 backdrop-blur-sm"
-                    onTouchStart={(e) => { e.preventDefault(); keysPressed.current['ArrowRight'] = true; }}
-                    onTouchEnd={(e) => { e.preventDefault(); keysPressed.current['ArrowRight'] = false; }}
-                >→</button>
-            </div>
-            <div className="flex gap-6">
-                 <button 
-                    className="w-20 h-20 bg-blue-500/30 border-2 border-blue-300/50 rounded-full flex items-center justify-center text-2xl font-bold active:bg-blue-500/50 backdrop-blur-sm"
-                    onTouchStart={(e) => { e.preventDefault(); handleJump(); }}
-                >
-                    JUMP
-                </button>
-                {activeDoorId !== null && (
+        {/* Mobile Controls - Rendered ONLY if isMobile is true */}
+        {isMobile && (
+            <div className="absolute bottom-8 left-0 w-full flex justify-between px-8 pointer-events-auto z-50">
+                <div className="flex gap-6">
                     <button 
-                        className="w-24 h-24 bg-yellow-500 border-4 border-black rounded-full flex items-center justify-center text-xl font-bold animate-pulse text-black shadow-lg"
-                        onTouchEnd={(e) => { e.preventDefault(); handleInteract(); }}
-                        onClick={handleInteract}
+                        className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-full flex items-center justify-center text-4xl active:bg-white/30 backdrop-blur-sm"
+                        onTouchStart={(e) => { e.preventDefault(); keysPressed.current['ArrowLeft'] = true; }}
+                        onTouchEnd={(e) => { e.preventDefault(); keysPressed.current['ArrowLeft'] = false; }}
+                    >←</button>
+                    <button 
+                        className="w-20 h-20 bg-white/10 border-2 border-white/50 rounded-full flex items-center justify-center text-4xl active:bg-white/30 backdrop-blur-sm"
+                        onTouchStart={(e) => { e.preventDefault(); keysPressed.current['ArrowRight'] = true; }}
+                        onTouchEnd={(e) => { e.preventDefault(); keysPressed.current['ArrowRight'] = false; }}
+                    >→</button>
+                </div>
+                <div className="flex gap-6">
+                    <button 
+                        className="w-20 h-20 bg-blue-500/30 border-2 border-blue-300/50 rounded-full flex items-center justify-center text-2xl font-bold active:bg-blue-500/50 backdrop-blur-sm"
+                        onTouchStart={(e) => { e.preventDefault(); handleJump(); }}
                     >
-                        ВХОД
+                        JUMP
                     </button>
-                )}
+                    {activeDoorId !== null && (
+                        <button 
+                            className="w-24 h-24 bg-yellow-500 border-4 border-black rounded-full flex items-center justify-center text-xl font-bold animate-pulse text-black shadow-lg"
+                            onTouchEnd={(e) => { e.preventDefault(); handleInteract(); }}
+                            onClick={handleInteract}
+                        >
+                            ВХОД
+                        </button>
+                    )}
+                </div>
             </div>
-        </div>
+        )}
         
-        <div className="absolute bottom-4 w-full text-center text-white/30 text-sm hidden md:block pointer-events-none">
-            [←][→] Move &nbsp;&nbsp; [SPACE/UP] Jump &nbsp;&nbsp; [ENTER] Enter
-        </div>
+        {/* Desktop Hint - Rendered ONLY if !isMobile */}
+        {!isMobile && (
+            <div className="absolute bottom-4 w-full text-center text-white/30 text-sm pointer-events-none">
+                [←][→] Move &nbsp;&nbsp; [SPACE/UP] Jump &nbsp;&nbsp; [ENTER] Enter
+            </div>
+        )}
 
     </div>
   );

@@ -5,6 +5,7 @@ import { useGameLoop } from '../../hooks/useGameLoop';
 import { SoundType, MusicType, startMusic, stopMusic } from '../../utils/AudioEngine';
 import { MinigameHUD } from '../core/MinigameHUD';
 import { Character } from '../../../types';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // --- Constants & Types ---
 const SCREEN_WIDTH = 320;
@@ -85,6 +86,7 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
     const { playSound } = useSettings();
     const { isInstructionModalVisible } = useNavigation();
     const { character } = useSession();
+    const isMobile = useIsMobile();
     
     // --- Refs for Game Loop ---
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -1041,28 +1043,30 @@ export const DranikiShooter: React.FC<{ onWin: () => void; onLose: () => void }>
                 style={{ imageRendering: 'pixelated' }}
             />
             
-            {/* Mobile Controls Overlay */}
-            <div className="absolute inset-0 pointer-events-none md:hidden z-40 flex flex-col justify-end pb-8 px-4">
-                <div className="flex justify-between items-end">
-                    <div className="relative w-48 h-48 pointer-events-auto opacity-60">
-                        <div className="absolute top-0 left-1/3 w-1/3 h-1/3 bg-gray-700/80 rounded-t flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
-                             onTouchStart={(e) => handleTouchStart('KeyW', e)} onTouchEnd={(e) => handleTouchEnd('KeyW', e)}>▲</div>
-                        <div className="absolute bottom-0 left-1/3 w-1/3 h-1/3 bg-gray-700/80 rounded-b flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
-                             onTouchStart={(e) => handleTouchStart('KeyS', e)} onTouchEnd={(e) => handleTouchEnd('KeyS', e)}>▼</div>
-                        <div className="absolute top-1/3 left-0 w-1/3 h-1/3 bg-gray-700/80 rounded-l flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
-                             onTouchStart={(e) => handleTouchStart('KeyA', e)} onTouchEnd={(e) => handleTouchEnd('KeyA', e)}>◄</div>
-                        <div className="absolute top-1/3 right-0 w-1/3 h-1/3 bg-gray-700/80 rounded-r flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
-                             onTouchStart={(e) => handleTouchStart('KeyD', e)} onTouchEnd={(e) => handleTouchEnd('KeyD', e)}>►</div>
-                    </div>
-                    
-                    <div 
-                        className="w-24 h-24 bg-red-600/80 rounded-full border-4 border-red-900 pointer-events-auto flex items-center justify-center active:bg-red-400 active:scale-95 transition-transform shadow-lg"
-                        onTouchStart={(e) => handleTouchStart('Space', e)} onTouchEnd={(e) => handleTouchEnd('Space', e)}
-                    >
-                        <span className="font-bold text-white text-xl" style={{textShadow: '2px 2px 0 #000'}}>FIRE</span>
+            {/* Mobile Controls Overlay - Uses useIsMobile hook */}
+            {isMobile && (
+                <div className="absolute inset-0 pointer-events-none z-40 flex flex-col justify-end pb-8 px-4">
+                    <div className="flex justify-between items-end">
+                        <div className="relative w-48 h-48 pointer-events-auto opacity-60">
+                            <div className="absolute top-0 left-1/3 w-1/3 h-1/3 bg-gray-700/80 rounded-t flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
+                                onTouchStart={(e) => handleTouchStart('KeyW', e)} onTouchEnd={(e) => handleTouchEnd('KeyW', e)}>▲</div>
+                            <div className="absolute bottom-0 left-1/3 w-1/3 h-1/3 bg-gray-700/80 rounded-b flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
+                                onTouchStart={(e) => handleTouchStart('KeyS', e)} onTouchEnd={(e) => handleTouchEnd('KeyS', e)}>▼</div>
+                            <div className="absolute top-1/3 left-0 w-1/3 h-1/3 bg-gray-700/80 rounded-l flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
+                                onTouchStart={(e) => handleTouchStart('KeyA', e)} onTouchEnd={(e) => handleTouchEnd('KeyA', e)}>◄</div>
+                            <div className="absolute top-1/3 right-0 w-1/3 h-1/3 bg-gray-700/80 rounded-r flex items-center justify-center border-2 border-white/30 active:bg-white/50 active:border-white"
+                                onTouchStart={(e) => handleTouchStart('KeyD', e)} onTouchEnd={(e) => handleTouchEnd('KeyD', e)}>►</div>
+                        </div>
+                        
+                        <div 
+                            className="w-24 h-24 bg-red-600/80 rounded-full border-4 border-red-900 pointer-events-auto flex items-center justify-center active:bg-red-400 active:scale-95 transition-transform shadow-lg"
+                            onTouchStart={(e) => handleTouchStart('Space', e)} onTouchEnd={(e) => handleTouchEnd('Space', e)}
+                        >
+                            <span className="font-bold text-white text-xl" style={{textShadow: '2px 2px 0 #000'}}>FIRE</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

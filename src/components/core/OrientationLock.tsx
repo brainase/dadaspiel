@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const OrientationLock: React.FC = () => {
@@ -14,7 +15,8 @@ export const OrientationLock: React.FC = () => {
                     align-items: center;
                     justify-content: center;
                     text-align: center;
-                    z-index: 100;
+                    z-index: 9999; /* Max z-index to cover everything */
+                    padding: 2rem;
                 }
 
                 @media (orientation: portrait) {
@@ -44,8 +46,18 @@ export const OrientationLock: React.FC = () => {
             `}</style>
             <div className="orientation-lock-overlay">
                 <div className="rotate-icon"></div>
-                <h2 className="text-3xl">Пожалуйста, поверните ваше устройство</h2>
-                <p className="mt-4 text-xl text-gray-400">Эта игра создана для ландшафтного режима.</p>
+                <h1 className="text-4xl font-bold text-yellow-300 mb-4">ДАДАШПИЛЬ</h1>
+                <h2 className="text-2xl mb-2">Пожалуйста, поверните устройство</h2>
+                <p className="mt-4 text-base text-gray-400 max-w-md">
+                    Игра работает только в горизонтальном режиме.
+                </p>
+                <div className="mt-8 p-4 border border-gray-600 rounded bg-gray-900/50">
+                    <p className="text-sm text-yellow-100">
+                        💡 <strong>Совет:</strong> Для лучшего погружения нажмите кнопку 
+                        <span className="inline-block mx-1 text-xl">↗️</span> 
+                        в меню (три точки), чтобы развернуть игру на весь экран.
+                    </p>
+                </div>
             </div>
         </>
     );

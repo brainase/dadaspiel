@@ -57,7 +57,7 @@ export const GameWrapper: React.FC<{ children: ReactNode }> = ({ children }) => 
         <div id="game-content-container" className="w-full h-full">
             {children}
         </div>
-        {isGameScreen && <OrientationLock />}
+        <OrientationLock />
       </div>
     </div>
   );
