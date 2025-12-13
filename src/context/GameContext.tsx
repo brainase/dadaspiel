@@ -387,8 +387,9 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (allCasesComplete) setScreen(GameScreen.FINAL_ENDING);
             else if (isCaseCompleted) setScreen(GameScreen.CASE_OUTRO);
             else { 
-                setMinigameIndex(newMinigameIndex); 
-                setScreen(GameScreen.MINIGAME_INTRO); 
+                // Return to Case Selection after each minigame to allow "Door" progression feel
+                // setMinigameIndex(newMinigameIndex); // Index is tracked in profile, so startCase will pick it up correctly
+                setScreen(GameScreen.CASE_SELECTION); 
             }
 
             return newProfiles;
