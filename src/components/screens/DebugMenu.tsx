@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useNavigation, useSettings } from '../../context/GameContext';
+import { useNavigation, useSettings, useProfile } from '../../context/GameContext';
 import { ALL_MINIGAMES } from '../../data/caseData';
 import { CHARACTERS } from '../../data/characterData';
 import { GameScreen, SeasonalEvent } from '../../../types';
@@ -40,6 +40,7 @@ const seasonalEvents = [
 export const DebugMenu: React.FC = () => {
     const { setScreen, setAnimationToView, jumpToMinigame } = useNavigation();
     const { isLogging, toggleLogging, playSound, debugCharacter, setDebugCharacter, seasonalEvent, setSeasonalEvent } = useSettings();
+    const { unlockAllLevels } = useProfile();
     
     const handleAnimationClick = (id: string) => {
         playSound(SoundType.BUTTON_CLICK);
@@ -55,15 +56,21 @@ export const DebugMenu: React.FC = () => {
     return (
         <div className="flex flex-col items-center h-full p-4 overflow-y-auto">
             <h2 className="text-3xl mt-4 mb-4">ДАДА АЛАДКИ</h2>
-            <div className="flex gap-4 mb-4">
+            <div className="flex gap-4 mb-4 flex-wrap justify-center">
                  <button onClick={() => handleActionClick(toggleLogging)} className="pixel-button p-2 text-sm">
                     {isLogging ? "Остановить запись" : "Начать запись лога"}
                 </button>
                 <button onClick={() => handleActionClick(() => setScreen(GameScreen.LOG_VIEW))} className="pixel-button p-2 text-sm">
                     Показать лог
                 </button>
+                <button onClick={() => handleActionClick(unlockAllLevels)} className="pixel-button p-2 text-sm bg-green-700 hover:bg-green-600">
+                    Открыть все
+                </button>
                 <button onClick={() => handleActionClick(() => setScreen(GameScreen.PROFILE_SELECTION))} className="pixel-button p-2 text-sm bg-red-700">
-                    Назад в меню
+                    Главное меню
+                </button>
+                <button onClick={() => handleActionClick(() => setScreen(GameScreen.CASE_SELECTION))} className="pixel-button p-2 text-sm bg-blue-700">
+                    Выбор дела
                 </button>
             </div>
 

@@ -52,6 +52,7 @@ interface ProfileContextType {
     isLogoutConfirmationVisible: boolean;
     confirmLogout: () => void;
     cancelLogout: () => void;
+    unlockAllLevels: () => void;
 }
 
 interface SessionContextType {
@@ -340,6 +341,26 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const cancelDeleteProfile = useCallback(() => { logEvent(`Deletion cancelled for profile ${profileToDeleteId}`); setProfileToDeleteId(null); }, [profileToDeleteId, logEvent]);
     
+    const unlockAllLevels = useCallback(() => {
+        if (!activeProfileId) return;
+        setProfiles(prev => {
+            const updated = prev.map(p => {
+                if (p.id === activeProfileId) {
+                    const allProgress: { [key: number]: number } = {};
+                    CASES.forEach(c => {
+                        allProgress[c.id] = c.minigames.length;
+                    });
+                    return { ...p, progress: allProgress, gameCompleted: true };
+                }
+                return p;
+            });
+            saveProfilesToStorage(updated);
+            return updated;
+        });
+        logEvent("DEBUG: All levels unlocked.");
+        playSound(SoundType.TRANSFORM_SUCCESS);
+    }, [activeProfileId, logEvent, playSound]);
+
     // --- Логика сессии/игры ---
     const startCase = useCallback((caseId: number) => {
         const selectedCase = dynamicCases.find(c => c.id === caseId);
@@ -458,7 +479,7 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // --- Memoized Context Values ---
     const navigationContextValue = useMemo(() => ({ screen, setScreen, animationToView, setAnimationToView, jumpToMinigame, isInstructionModalVisible: isUIPaused, showInstructionModal: () => setIsInstructionModalOpen(true), hideInstructionModal: () => setIsInstructionModalOpen(false) }), [screen, animationToView, isUIPaused, setScreen, jumpToMinigame]);
     const settingsContextValue = useMemo(() => ({ debugMode, toggleDebug: () => setDebugMode(d => !d), isLogging, toggleLogging: () => setIsLogging(l => !l), setIsLogging, log, logEvent, isMuted, toggleMute, playSound, debugCharacter, setDebugCharacter, seasonalEvent, setSeasonalEvent, seasonalAnimationsEnabled, toggleSeasonalAnimations, seasonalMessage }), [debugMode, isLogging, log, isMuted, debugCharacter, logEvent, playSound, toggleMute, seasonalEvent, setSeasonalEvent, seasonalAnimationsEnabled, toggleSeasonalAnimations, seasonalMessage]);
-    const profileContextValue = useMemo(() => ({ profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, requestLogout, dynamicCases, isLogoutConfirmationVisible, confirmLogout, cancelLogout }), [profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, requestLogout, dynamicCases, isLogoutConfirmationVisible, confirmLogout, cancelLogout]);
+    const profileContextValue = useMemo(() => ({ profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, requestLogout, dynamicCases, isLogoutConfirmationVisible, confirmLogout, cancelLogout, unlockAllLevels }), [profiles, activeProfile, profileToDeleteId, createProfile, selectProfile, deleteProfile, confirmDeleteProfile, cancelDeleteProfile, requestLogout, dynamicCases, isLogoutConfirmationVisible, confirmLogout, cancelLogout, unlockAllLevels]);
     const sessionContextValue = useMemo(() => ({ character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, isGlitchWin, glitchWinVideoUrl, startCase, winMinigame, loseMinigame, killPlayer, addLife: (amount = 1) => setLives(l => l + amount), addScore: (points) => setSessionScore(s => s + points), activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge, proceedAfterGlitchWin }), [character, currentCase, minigameIndex, lives, sessionScore, isSlowMo, isMinigameInverted, abilityUsedInCase, abilityUsedInSession, forcedOutro, absurdEdgeUsedInSession, isAbsurdEdgeBonusRound, isGlitchWin, glitchWinVideoUrl, startCase, winMinigame, loseMinigame, killPlayer, activateArtistInsight, activateFourthWall, handleMistake, activateAbsurdEdge, proceedAfterGlitchWin]);
 
     return (
