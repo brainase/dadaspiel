@@ -239,7 +239,6 @@ export const DOOR_ART_2 = [
 " W W    W W ",
 " W W    W W ",
 " W W    W W ",
-" W W    W W ",
 " WWWWWWWWWW ",
 " WWWWWWWWWW ",
 ];
@@ -279,8 +278,6 @@ export const DOOR_ART_4 = [
 " MMMMMMMMMM ",
 " M M M M M M",
 " MMMMMMMMMM ",
-" M M M M M M",
-" MMMMMMMMMM ",
 " MMMMMMMMMM ",
 ];
 
@@ -297,6 +294,9 @@ export const DOOR_ART_5 = [
 " W        W ",
 " W   bb   W ",
 " W        W ",
+" W        W ",
+" W        W ",
+" W   bb   W ",
 " W        W ",
 " W        W ",
 " W        W ",
@@ -351,4 +351,35 @@ export const STOP_SIGN_ART = [
     "     SS     ",
     "     SS     ",
     "     SS     ",
+];
+
+// --- BACKGROUND SVG ASSETS LIBRARY ---
+// To add more: create a new object with `viewBox`, `path`, and `color`.
+export const BACKGROUND_ASSETS = [
+    // Tree 1 (Pine)
+    { viewBox: "0 0 100 100", path: "M50 10 L20 80 L80 80 Z M45 80 L45 100 L55 100 L55 80 Z", color: "#1a472a" },
+    // Tree 2 (Round)
+    { viewBox: "0 0 100 100", path: "M50 80 L50 100 L50 80 M50 20 A30 30 0 1 0 50 80 A30 30 0 1 0 50 20 Z", color: "#2d5a27", stroke: "#1e1e1e", strokeWidth: 4 },
+    // Dead Tree
+    { viewBox: "0 0 100 100", path: "M50 100 L50 60 M50 60 L30 40 M50 60 L70 30 M50 80 L60 70", color: "none", stroke: "#3d2b1f", strokeWidth: 3 },
+    // Bush
+    { viewBox: "0 0 100 50", path: "M10 50 Q30 10 50 50 Q70 0 90 50 Z", color: "#3a5a40" },
+    // Weird Monolith
+    { viewBox: "0 0 50 100", path: "M10 100 L20 10 L30 10 L40 100 Z", color: "#111" },
+    // Eye Stalk
+    { viewBox: "0 0 50 100", path: "M25 100 Q10 50 25 20 A10 10 0 1 0 25 0 A10 10 0 1 0 25 20", color: "#4a044e", stroke: "#000", strokeWidth: 2 },
+];
+
+// --- PLATFORM SVG ASSETS LIBRARY ---
+// Used for "Middle Tier" platforms.
+// To add more: add an object with `id`, `viewBox`, `content` (React Node or Path), and visual `width`/`height`.
+export const PLATFORM_ASSETS = [
+    { id: 'D', type: 'letter', content: 'ДА', color: '#ff00ff' },
+    { id: 'A', type: 'letter', content: 'АД', color: '#00ffff' },
+    { id: 'Sh', type: 'letter', content: 'ыщ', color: '#ffff00' },
+    { id: 'Brick', type: 'emoji', content: '🧱', color: 'none' },
+    { id: 'Cassette', type: 'emoji', content: '📼', color: 'none' },
+    { id: 'Disk', type: 'emoji', content: '💾', color: 'none' },
+    { id: 'Mona', type: 'emoji', content: '🖼️', color: 'none' },
+    { id: 'Statue', type: 'emoji', content: '🗿', color: 'none' },
 ];

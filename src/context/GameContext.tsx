@@ -122,6 +122,15 @@ const saveProfilesToStorage = (profilesToSave: PlayerProfile[]) => {
     }
 };
 
+// Robust UUID generator
+const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    // Fallback for non-secure contexts
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
 // Helper to calculate seasonal event
 const getSeasonalEvent = (): SeasonalEvent => {
     const today = new Date();
@@ -307,10 +316,11 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const hasDadaToken = character === Character.BLACK_PLAYER && completedChars.has(Character.KANILA) && completedChars.has(Character.SEXISM);
         if(hasDadaToken) logEvent("Dada Token granted!");
         
-        const newProfile: PlayerProfile = { id: crypto.randomUUID(), name, character, progress: {}, highScore: 0, hasDadaToken: hasDadaToken ? true : undefined, };
+        const newId = generateUUID();
+        const newProfile: PlayerProfile = { id: newId, name, character, progress: {}, highScore: 0, hasDadaToken: hasDadaToken ? true : undefined, };
         setProfiles(prev => { const newProfiles = [...prev, newProfile]; saveProfilesToStorage(newProfiles); return newProfiles; });
         
-        setActiveProfileId(newProfile.id);
+        setActiveProfileId(newId);
         setSessionScore(0); setLives(3); setAbilityUsedInSession(false); setAbsurdEdgeUsedInSession(false); setIsAbsurdEdgeBonusRound(false); setDebugCharacter(null);
         setScreen(GameScreen.CASE_SELECTION);
     }, [logEvent, profiles]);
@@ -329,20 +339,31 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const confirmDeleteProfile = useCallback(() => {
         if (!profileToDeleteId) return;
+        
+        const isDeletingActive = activeProfileId === profileToDeleteId;
+
         setProfiles(prev => {
             const updated = prev.filter(p => p.id !== profileToDeleteId);
             saveProfilesToStorage(updated);
-            logEvent(`Profile ${profileToDeleteId} deleted.`);
-            if (activeProfileId === profileToDeleteId) setActiveProfileId(null);
             return updated;
         });
+        
+        logEvent(`Profile ${profileToDeleteId} deleted.`);
+        
+        if (isDeletingActive) setActiveProfileId(null);
         setProfileToDeleteId(null);
     }, [profileToDeleteId, activeProfileId, logEvent]);
 
     const cancelDeleteProfile = useCallback(() => { logEvent(`Deletion cancelled for profile ${profileToDeleteId}`); setProfileToDeleteId(null); }, [profileToDeleteId, logEvent]);
     
     const unlockAllLevels = useCallback(() => {
-        if (!activeProfileId) return;
+        if (!activeProfileId) {
+             logEvent("DEBUG: No active profile selected to unlock.");
+             return;
+        }
+        
+        logEvent(`DEBUG: Unlocking levels for ${activeProfileId}`);
+
         setProfiles(prev => {
             const updated = prev.map(p => {
                 if (p.id === activeProfileId) {
@@ -357,7 +378,6 @@ export const GameProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             saveProfilesToStorage(updated);
             return updated;
         });
-        logEvent("DEBUG: All levels unlocked.");
         playSound(SoundType.TRANSFORM_SUCCESS);
     }, [activeProfileId, logEvent, playSound]);
 
