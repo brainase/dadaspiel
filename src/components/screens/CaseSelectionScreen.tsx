@@ -65,7 +65,7 @@ export const CaseSelectionScreen: React.FC = () => {
   // --- Level Design ---
   const platforms: Platform[] = [
       { x: 500, y: 180, w: 150, h: 20 },
-      { x: 900, y: 250, w: 120, h: 20 },
+      // Removed platform at x: 900 to make Case 3 a jumping challenge
       { x: 1300, y: 150, w: 100, h: 20 },
       { x: 1600, y: 300, w: 100, h: 20 },
       { x: 2000, y: 100, w: 300, h: 40 },
@@ -74,7 +74,7 @@ export const CaseSelectionScreen: React.FC = () => {
   const doorLocations: DoorLoc[] = [
       { id: 1, x: 300, y: GROUND_LEVEL },
       { id: 2, x: 575, y: 180 },
-      { id: 3, x: 960, y: 250 },
+      { id: 3, x: 200, y: 280 }, // Wormhole high above start
       { id: 4, x: 1350, y: 150 },
       { id: 5, x: 1650, y: 300 },
       { id: 6, x: 2150, y: 140 },
@@ -230,7 +230,10 @@ export const CaseSelectionScreen: React.FC = () => {
       let foundDoor = null;
       for (const door of doorLocations) {
           const p = playerRef.current;
+          // Check if distance to door is close enough
+          // Also check vertical distance for Case 3 specifically (must be high up)
           const dist = Math.sqrt(Math.pow(p.x - door.x, 2) + Math.pow(p.y - door.y, 2));
+          
           if (dist < 80) {
               if (isUnlocked(door.id)) {
                   foundDoor = door.id;
@@ -321,6 +324,58 @@ export const CaseSelectionScreen: React.FC = () => {
                 const total = c.minigames.length;
                 const showCheck = completed;
                 
+                // Special rendering for Case 3 (Wormhole)
+                if (c.id === 3) {
+                    return (
+                        <div 
+                            key={c.id}
+                            className="absolute flex flex-col items-center z-10"
+                            style={{ left: doorLoc.x, bottom: doorLoc.y, transform: 'translateX(-50%)' }}
+                            onClick={(e) => { 
+                                if(isActive && unlocked) {
+                                    e.stopPropagation(); 
+                                    handleInteract(); 
+                                }
+                            }}
+                        >
+                            <style>{`
+                                @keyframes wormhole-spin {
+                                    0% { transform: rotate(0deg) scale(1); }
+                                    50% { transform: rotate(180deg) scale(1.1); }
+                                    100% { transform: rotate(360deg) scale(1); }
+                                }
+                                @keyframes wormhole-pulse {
+                                    0%, 100% { opacity: 0.6; filter: hue-rotate(0deg); }
+                                    50% { opacity: 1; filter: hue-rotate(45deg); }
+                                }
+                            `}</style>
+                            
+                            {/* Title always visible for the wormhole to guide player */}
+                            <div 
+                                className={`mb-2 px-2 py-1 text-center bg-black/80 border rounded text-xs whitespace-nowrap transition-all duration-200
+                                    ${isActive ? 'border-orange-500 text-orange-400 scale-125' : 'border-gray-600 text-gray-500'}
+                                `}
+                            >
+                                {cleanTitle(c.title)}
+                            </div>
+
+                            {/* The Wormhole Visual */}
+                            <div 
+                                className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 ${isActive ? 'scale-125' : 'scale-100'}`}
+                                style={{
+                                    background: 'radial-gradient(circle, #000 20%, #ff4500 60%, #ff8c00 100%)',
+                                    animation: 'wormhole-spin 3s linear infinite, wormhole-pulse 1s ease-in-out infinite',
+                                    boxShadow: isActive ? '0 0 20px #ff4500' : '0 0 10px #ff8c00'
+                                }}
+                            >
+                                <div className="text-2xl animate-pulse">🔥</div>
+                            </div>
+                            
+                            {showCheck && <div className="absolute text-green-400 text-xl font-bold -bottom-4">✅</div>}
+                        </div>
+                    )
+                }
+
                 return (
                     <div 
                         key={c.id} 
@@ -446,7 +501,9 @@ export const CaseSelectionScreen: React.FC = () => {
                             onContextMenu={(e) => e.preventDefault()}
                         >
                             {/* Graphic "DaDa" to prevent text selection */}
-														<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 17.600000381469727 72.0999984741211 46.55000305175781" data-asc="1.069" width="72.0999984741211" height="46.55000305175781"><defs/><g fill="#1e1e1e"><g transform="translate(0, 0)"><path d="M32.60 17.75L32.60 46.40L37.15 46.40L37.15 64.15L28.40 64.15L28.40 53.45L8.80 53.45L8.80 64.15L0 64.15L0 46.40L2.75 46.40Q4.35 43.60 5.60 40.45Q6.85 37.30 7.80 33.75Q8.75 30.20 9.35 26.20Q9.95 22.20 10.25 17.75L32.60 17.75M17.50 24.80Q17.25 27.40 16.80 30.15Q16.35 32.90 15.70 35.70Q15.05 38.50 14.20 41.20Q13.35 43.90 12.30 46.40L23.50 46.40L23.50 24.80L17.50 24.80ZM62.20 53.45L60.55 45.80L49.65 45.80L47.95 53.45L38 53.45L48.95 17.60L61 17.60L72.10 53.45L62.20 53.45M56.80 31.50Q56.55 30.40 56.23 29.07Q55.90 27.75 55.60 26.32Q55.30 24.90 55.05 23.55Q54.75 25.65 54.28 27.75Q53.80 29.85 53.40 31.50L51.50 38.70L58.70 38.70L56.80 31.50Z"/></g></g></svg>                    )}
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 17.600000381469727 72.0999984741211 46.55000305175781" data-asc="1.069" width="72.0999984741211" height="46.55000305175781"><defs/><g fill="#1e1e1e"><g transform="translate(0, 0)"><path d="M32.60 17.75L32.60 46.40L37.15 46.40L37.15 64.15L28.40 64.15L28.40 53.45L8.80 53.45L8.80 64.15L0 64.15L0 46.40L2.75 46.40Q4.35 43.60 5.60 40.45Q6.85 37.30 7.80 33.75Q8.75 30.20 9.35 26.20Q9.95 22.20 10.25 17.75L32.60 17.75M17.50 24.80Q17.25 27.40 16.80 30.15Q16.35 32.90 15.70 35.70Q15.05 38.50 14.20 41.20Q13.35 43.90 12.30 46.40L23.50 46.40L23.50 24.80L17.50 24.80ZM62.20 53.45L60.55 45.80L49.65 45.80L47.95 53.45L38 53.45L48.95 17.60L61 17.60L72.10 53.45L62.20 53.45M56.80 31.50Q56.55 30.40 56.23 29.07Q55.90 27.75 55.60 26.32Q55.30 24.90 55.05 23.55Q54.75 25.65 54.28 27.75Q53.80 29.85 53.40 31.50L51.50 38.70L58.70 38.70L56.80 31.50Z"/></g></g></svg>
+                        </button>
+                    )}
                 </div>
             </div>
         )}
